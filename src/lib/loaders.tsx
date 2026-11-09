@@ -9,10 +9,16 @@ import {
   type TextLoaderVariant,
 } from "generative-loaders";
 import { DotMatrix } from "@/components/DotMatrix";
+import {
+  AnswerUsage,
+  ImageSlotUsage,
+  PillUsage,
+  TurnUsage,
+} from "@/components/LoaderUsage";
 import type { GalleryItem } from "@/components/Gallery";
 import { ShimmerText } from "@/components/ShimmerText";
 import { Skeleton } from "@/components/Skeleton";
-import { MODES, labelImage } from "@/lib/modes";
+import { BRAND_PAPER, MODES, labelImage } from "@/lib/modes";
 import type { ThemeName } from "@/lib/palette";
 
 /**
@@ -26,9 +32,9 @@ import type { ThemeName } from "@/lib/palette";
 
 const thinking = MODES[0];
 
-/** Lime on black, sage on paper — the Thinking accent in either palette. */
+/** The brand green, at a weight that reads on each surface. */
 const brand = (theme: ThemeName) =>
-  theme === "day" ? thinking.muted : thinking.dot;
+  theme === "day" ? BRAND_PAPER : thinking.dot;
 
 const IMAGE_VARIANTS: ImageLoaderVariant[] = [
   "resolution",
@@ -83,6 +89,16 @@ const HOUSE: GalleryItem[] = [
     name: "Dot matrix",
     note: "The pill's 3×3 head. Figma's anti-diagonal opacity ramp is each dot's floor; a wave runs down the same diagonal on top, so the motion only ever adds light.",
     render: (theme) => <DotMatrix color={brand(theme)} active />,
+    usage: (theme) => (
+      <PillUsage theme={theme}>
+        <DotMatrix color={brand(theme)} active />
+        <span className="ml-[14px] text-[14px] font-semibold leading-[20px] tracking-[-0.28px]">
+          <ShimmerText image={labelImage(thinking, theme)} duration={2.2}>
+            Thinking...
+          </ShimmerText>
+        </span>
+      </PillUsage>
+    ),
   },
   {
     id: "house-shimmer",
@@ -95,6 +111,18 @@ const HOUSE: GalleryItem[] = [
           Thinking...
         </ShimmerText>
       </span>
+    ),
+    usage: (theme) => (
+      <TurnUsage
+        theme={theme}
+        caption="Cross-referenced your Gmail & 9 preferences"
+      >
+        <span className="text-[13px] font-semibold leading-[19px] tracking-[-0.26px]">
+          <ShimmerText image={labelImage(thinking, theme)} duration={2.2}>
+            Comparing 9 OTAs
+          </ShimmerText>
+        </span>
+      </TurnUsage>
     ),
   },
   {
@@ -110,6 +138,15 @@ const HOUSE: GalleryItem[] = [
         />
       </div>
     ),
+    usage: (theme) => (
+      <AnswerUsage theme={theme}>
+        <Skeleton
+          widths={[160, 96]}
+          tone={theme === "day" ? "light" : "dark"}
+        />
+      </AnswerUsage>
+    ),
+    usageMinHeight: 150,
   },
 ];
 
@@ -126,6 +163,17 @@ const IMAGE: GalleryItem[] = IMAGE_VARIANTS.map((variant) => ({
       label={`Generating image — ${variant}`}
     />
   ),
+  usage: (theme) => (
+    <ImageSlotUsage theme={theme}>
+      <ImageLoader
+        variant={variant}
+        size={88}
+        color={brand(theme)}
+        label={`Generating image — ${variant}`}
+      />
+    </ImageSlotUsage>
+  ),
+  usageMinHeight: 206,
 }));
 
 const INLINE: GalleryItem[] = INLINE_VARIANTS.map((variant) => ({
@@ -141,6 +189,24 @@ const INLINE: GalleryItem[] = INLINE_VARIANTS.map((variant) => ({
       label={`Working — ${variant}`}
     />
   ),
+  usage: (theme) => (
+    <TurnUsage theme={theme} caption="Holding 12A to Bangkok">
+      <InlineLoader
+        variant={variant}
+        size={17}
+        color={brand(theme)}
+        label={`Working — ${variant}`}
+      />
+      <span
+        className={`text-[13px] font-medium leading-[19px] tracking-[-0.26px] ${
+          theme === "day" ? "text-black/85" : "text-white/85"
+        }`}
+      >
+        Checking 9 OTAs
+      </span>
+    </TurnUsage>
+  ),
+  usageMinHeight: 112,
 }));
 
 const TEXT: GalleryItem[] = TEXT_VARIANTS.map((variant) => ({

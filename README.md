@@ -17,6 +17,18 @@ Two variants of the same run:
 | `/scenes` | All four scenes side by side, either palette — for judging them on their own. |
 | `/loaders` | A shelf of loading animations, same card, either palette. Adding one is an entry in `lib/loaders.tsx`. |
 
+Every card has two views, toggled in the header: the loader **bare**, and the
+loader **in context** — inside the status pill, inside an assistant turn,
+inside the slot an image will fill. A loader on a blank card tells you what it
+looks like; it does not tell you whether it works.
+
+Loaders take the brand green, but not the same one in both palettes. `#A1E000`
+is tuned for a black card; on paper it has almost no contrast, and several of
+these dim themselves from 10% to 82% opacity, which leaves the quiet states
+invisible. `BRAND_PAPER` is the same hue at ~21% lightness. It is deliberately
+*not* the daylight scene palette's sage — that is artwork colour, desaturated
+on purpose, and it turns to mush when a loader fades it.
+
 The loaders page carries the three built here plus all 39 variants of
 [`generative-loaders`](https://www.npmjs.com/package/generative-loaders) —
 image, inline and text — each passed our Thinking accent rather than its own

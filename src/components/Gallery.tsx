@@ -16,7 +16,11 @@ export type GalleryItem = {
   note?: string;
   /** Cards size themselves to their content; this sets the minimum. */
   minHeight?: number;
+  /** The loader on its own. */
   render: (theme: ThemeName) => React.ReactNode;
+  /** The loader doing its job, in a fragment of the product it belongs to. */
+  usage?: (theme: ThemeName) => React.ReactNode;
+  usageMinHeight?: number;
 };
 
 /**
@@ -34,7 +38,9 @@ export function Gallery({
   links: { href: string; label: string }[];
 }) {
   const [theme, setTheme] = useState<ThemeName>("night");
+  const [inContext, setInContext] = useState(true);
   const day = theme === "day";
+  const anyUsage = items.some((i) => i.usage);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -43,6 +49,15 @@ export function Gallery({
           <h1 className="mr-auto text-[15px] font-semibold tracking-[-0.3px] text-white/80">
             {title}
           </h1>
+          {anyUsage && (
+            <button
+              type="button"
+              onClick={() => setInContext((v) => !v)}
+              className="rounded-full border border-white/15 px-[14px] py-[7px] text-[12px] font-medium text-white/70 transition-colors hover:border-white/35 hover:text-white"
+            >
+              {inContext ? "Show bare" : "Show in context"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setTheme(day ? "night" : "day")}
@@ -90,9 +105,16 @@ export function Gallery({
                           ? "border border-[#e7e3db] bg-[#fbfaf7]"
                           : "bg-black"
                       }`}
-                      style={{ minHeight: item.minHeight ?? 112 }}
+                      style={{
+                        minHeight:
+                          (inContext && item.usage
+                            ? item.usageMinHeight
+                            : item.minHeight) ?? 112,
+                      }}
                     >
-                      {item.render(theme)}
+                      {inContext && item.usage
+                        ? item.usage(theme)
+                        : item.render(theme)}
                     </div>
                     <div className="px-[4px]">
                       <p className="text-[13px] font-medium tracking-[-0.13px] text-white/70">

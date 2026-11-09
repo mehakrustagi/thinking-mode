@@ -91,6 +91,19 @@ export const MODES: Mode[] = [
 ];
 
 /** Label gradient endpoints for a mode. */
+/**
+ * The brand green at a lightness that reads on paper.
+ *
+ * #A1E000 is tuned for a black card; on near-white it has barely any contrast,
+ * and loaders fade it further with their own opacity ramps. This is the same
+ * hue taken down to ~21% lightness. It has to go this dark because the
+ * loaders dim it themselves — several ramp from 10% to 82% opacity, which on
+ * near-white leaves the quiet states invisible unless the colour underneath
+ * is strong. It is not the daylight scene palette's sage either: that is
+ * artwork colour, deliberately desaturated, and it turns to mush when dimmed.
+ */
+export const BRAND_PAPER = "#44610a";
+
 export const labelBase = (hue: number) => `hsl(${hue} 100% 60% / 0.42)`;
 export const labelPeak = (hue: number) => `hsl(${hue} 100% 66%)`;
 
