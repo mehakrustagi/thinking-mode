@@ -4,8 +4,15 @@ The agent status pill from [Motion → thinking mode animation](https://www.figm
 built as a running screen rather than four static frames.
 
 ```bash
-npm run dev   # http://localhost:3000
+npm run dev
 ```
+
+Two variants of the same run:
+
+| Route | What the pill opens into |
+| --- | --- |
+| `/` | The agent's steps — a done / active / pending ladder. |
+| `/pixel` | The dot-matrix landscape it runs through while it works. |
 
 ## What runs
 
@@ -22,6 +29,28 @@ The Figma page has one frame per mode — **Thinking**, **Checking**, **Analyzin
 | Inline chips | The `#002411 → #a1e000` gradient from the design, with a one-shot sweep on arrival — marks a live lookup rather than emphasis. |
 
 Everything honours `prefers-reduced-motion` via `MotionConfig reducedMotion="user"`.
+
+## The landscape (`/pixel`)
+
+The same black capsule, opened out into a window. One `layout` spring morphs
+161×44 r60 into 313×112 r28 and the contents cross-fade inside it; the scene
+stays mounted through the morph so the horse never restarts its gallop.
+
+`PixelScene` is a canvas drawing one grid of dots on a 4px pitch — sky, ridges,
+ground and horse all snap to the same lattice, which is what makes it read as a
+single display rather than sprites on a drawing. Terrain is sampled by absolute
+world column from a seeded value-noise, squared so the profile stays low and
+spikes into peaks, so every layer scrolls forever without holding state; only
+the offsets advance.
+
+Four parallax rates, in grid columns per second: stars 0.4, far ridge 1.6, mid
+ridge 4.5, ground 11. The horse is a 22×15 sprite in four frames — extension,
+gather, push-off, suspension — at 11fps, with the body identical in each and
+only the legs and a one-row bob changing. That's what keeps the silhouette
+readable at a 2.4px dot.
+
+Foliage takes the active mode's colour, so the landscape shifts from lime to
+gold to teal as the run proceeds.
 
 ## Colours
 

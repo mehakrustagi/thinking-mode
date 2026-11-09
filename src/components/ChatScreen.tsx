@@ -8,23 +8,30 @@ import { Bubble } from "./Bubble";
 import { Composer } from "./Composer";
 import { Header } from "./Header";
 import { Skeleton } from "./Skeleton";
+import { ThinkingCard } from "./ThinkingCard";
 import { ThinkingPill } from "./ThinkingPill";
 import { WordReveal } from "./WordReveal";
 import { MODES, MODE_DURATION_MS, STEP_INTERVAL_MS } from "@/lib/modes";
 import { EASE_OUT } from "@/lib/motion";
 
 /**
- * The run: the pill walks the four modes, each one streaming its own steps,
- * then settles and the answer it was writing replaces the placeholder bars.
+ * The run: the status element walks the four modes, each one streaming its own
+ * steps, then settles and the answer it was writing replaces the placeholder
+ * bars.
  *
- * One timeout chain drives everything, keyed on `runId` so Replay tears the
- * whole thing down rather than racing a second chain against the first.
+ * `variant` only changes what sits at the top. "steps" is the pill that opens
+ * into the agent's checklist; "scene" is the pill that opens into the
+ * dot-matrix landscape it runs through while it works.
  */
-export function ChatScreen() {
+export function ChatScreen({
+  variant = "steps",
+}: {
+  variant?: "steps" | "scene";
+}) {
   const [modeIndex, setModeIndex] = useState(0);
   const [stepCount, setStepCount] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(variant === "scene");
   const scroller = useRef<HTMLDivElement>(null);
 
   // Replay remounts this component (it is keyed on the run), so the chain only
@@ -63,14 +70,23 @@ export function ChatScreen() {
     <div className="relative size-full overflow-hidden bg-[color:var(--screen)]">
       <Header />
 
-      <ThinkingPill
-        mode={mode}
-        modeIndex={modeIndex}
-        steps={mode.steps.slice(0, stepCount)}
-        settled={settled}
-        expanded={expanded}
-        onToggle={() => setExpanded((v) => !v)}
-      />
+      {variant === "scene" ? (
+        <ThinkingCard
+          mode={mode}
+          open={expanded}
+          settled={settled}
+          onToggle={() => setExpanded((v) => !v)}
+        />
+      ) : (
+        <ThinkingPill
+          mode={mode}
+          modeIndex={modeIndex}
+          steps={mode.steps.slice(0, stepCount)}
+          settled={settled}
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+        />
+      )}
 
       <div
         ref={scroller}
