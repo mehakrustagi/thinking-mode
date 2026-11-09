@@ -6,22 +6,14 @@ import { useEffect, useState } from "react";
 import { DotMatrix } from "./DotMatrix";
 import { PixelScene } from "./PixelScene";
 import { ShimmerText } from "./ShimmerText";
-import { labelBase, labelPeak, type Mode } from "@/lib/modes";
+import { labelImage, type Mode } from "@/lib/modes";
 import { EASE_OUT, MORPH, SWAP } from "@/lib/motion";
 
-const CARD = { w: 313, h: 112, r: 28 };
+const CARD = { w: 313, h: 88, r: 24 };
 const PILL_R = 60;
 
 /** Beat between the box finishing its growth and the dots starting to arrive. */
 const SCENE_DELAY_MS = 280;
-
-const SETTLED: Mode = {
-  id: "booking",
-  label: "Booked",
-  dot: "#01ddd6",
-  hue: 178,
-  steps: [],
-};
 
 /**
  * The expanded form of the status pill: the same black capsule opened out into
@@ -42,7 +34,7 @@ export function ThinkingCard({
   settled: boolean;
   onToggle: () => void;
 }) {
-  const shown = settled ? SETTLED : mode;
+  const shown = mode;
   const [sceneOn, setSceneOn] = useState(false);
 
   useEffect(() => {
@@ -60,12 +52,7 @@ export function ThinkingCard({
         transition={SWAP}
         className="block whitespace-nowrap text-[14px] font-semibold leading-[20px] tracking-[-0.28px]"
       >
-        <ShimmerText
-          active={!settled}
-          duration={2.2}
-          base={labelBase(shown.hue)}
-          highlight={labelPeak(shown.hue)}
-        >
+        <ShimmerText active={!settled} duration={2.2} image={labelImage(shown)}>
           {shown.label}
           {settled ? "" : "..."}
         </ShimmerText>
@@ -82,7 +69,7 @@ export function ThinkingCard({
         aria-label={`${shown.label} — ${open ? "collapse" : "expand"}`}
         layout
         className={`pointer-events-auto relative overflow-hidden bg-black outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-          open ? "h-[112px] w-[313px]" : "h-[44px]"
+          open ? "h-[88px] w-[313px]" : "h-[44px]"
         }`}
         initial={{ opacity: 0, scale: 0.82, y: -10, filter: "blur(8px)" }}
         animate={{
@@ -138,7 +125,7 @@ export function ThinkingCard({
             running={!settled}
             accent={shown.dot}
           />
-          <span className="absolute inset-x-0 top-[14px] flex justify-center">
+          <span className="absolute inset-x-0 top-[10px] flex justify-center">
             {label}
           </span>
         </motion.span>

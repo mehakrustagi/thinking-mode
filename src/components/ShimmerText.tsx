@@ -16,6 +16,8 @@ export function ShimmerText({
   active = true,
   base = "#999999",
   highlight = "#ffffff",
+  /** Overrides base/highlight when a mode specifies its own gradient. */
+  image,
   /** Seconds for one pass. Slower reads as ambient; faster reads as a spinner. */
   duration = 2.6,
   className = "",
@@ -25,6 +27,7 @@ export function ShimmerText({
   active?: boolean;
   base?: string;
   highlight?: string;
+  image?: string;
   duration?: number;
   className?: string;
   style?: CSSProperties;
@@ -36,7 +39,9 @@ export function ShimmerText({
       initial={false}
       className={`gradient-text ${className}`}
       style={{
-        backgroundImage: `linear-gradient(100deg, ${base} 38%, ${highlight} 50%, ${base} 62%)`,
+        backgroundImage:
+          image ??
+          `linear-gradient(100deg, ${base} 38%, ${highlight} 50%, ${base} 62%)`,
         backgroundSize: "260% 100%",
         ...style,
       }}

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { DotMatrix } from "./DotMatrix";
 import { ShimmerText } from "./ShimmerText";
-import { MODES, labelBase, labelPeak, type Mode } from "@/lib/modes";
+import { MODES, labelImage, type Mode } from "@/lib/modes";
 import { EASE_OUT, MORPH, SWAP } from "@/lib/motion";
 
 /** The mode the pill settles into once the run resolves. */
@@ -74,8 +74,7 @@ export function ThinkingPill({
               <ShimmerText
                 active={!settled}
                 duration={2.2}
-                base={labelBase(shown.hue)}
-                highlight={labelPeak(shown.hue)}
+                image={labelImage(shown)}
               >
                 {shown.label}
                 {settled ? "" : "..."}

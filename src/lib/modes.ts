@@ -16,6 +16,8 @@ export type Mode = {
   dot: string;
   /** Hue shared by the dots and the label gradient. */
   hue: number;
+  /** Explicit label gradient, where the design specifies one. */
+  grad?: [string, string];
   /** What the agent is actually doing, streamed one line at a time. */
   steps: string[];
 };
@@ -24,8 +26,10 @@ export const MODES: Mode[] = [
   {
     id: "thinking",
     label: "Thinking",
-    dot: "#9edd01",
+    dot: "#a1e000",
     hue: 77,
+    // The Thinking gradient from the file: #002411 -> #A1E000.
+    grad: ["#002411", "#a1e000"],
     steps: [
       "Reading the request",
       "Splitting it into 3 sub-tasks",
@@ -71,7 +75,24 @@ export const MODES: Mode[] = [
 export const labelBase = (hue: number) => `hsl(${hue} 100% 60% / 0.42)`;
 export const labelPeak = (hue: number) => `hsl(${hue} 100% 66%)`;
 
+/**
+ * The label's paint. A mode with an explicit gradient keeps its two stops and
+ * gets the sweep highlight threaded between them; the rest derive both ends
+ * from their hue.
+ */
+export function labelImage(mode: Mode) {
+  if (mode.grad) {
+    const [from, to] = mode.grad;
+    return `linear-gradient(100deg, ${from} 4%, ${to} 40%, #ffffff 50%, ${to} 60%, ${from} 96%)`;
+  }
+  return `linear-gradient(100deg, ${labelBase(mode.hue)} 38%, ${labelPeak(
+    mode.hue,
+  )} 50%, ${labelBase(mode.hue)} 62%)`;
+}
+
 export const MODE_DURATION_MS = 3400;
 /** How long the landscape variant holds the plain pill before opening out. */
 export const HOLD_BEFORE_OPEN_MS = 2000;
+/** After the card shrinks back, how long before the landscape run repeats. */
+export const LOOP_PAUSE_MS = 3200;
 export const STEP_INTERVAL_MS = 950;

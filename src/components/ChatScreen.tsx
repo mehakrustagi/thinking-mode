@@ -13,6 +13,7 @@ import { ThinkingPill } from "./ThinkingPill";
 import { WordReveal } from "./WordReveal";
 import {
   HOLD_BEFORE_OPEN_MS,
+  LOOP_PAUSE_MS,
   MODES,
   MODE_DURATION_MS,
   STEP_INTERVAL_MS,
@@ -30,8 +31,11 @@ import { EASE_OUT } from "@/lib/motion";
  */
 export function ChatScreen({
   variant = "steps",
+  onComplete,
 }: {
   variant?: "steps" | "scene";
+  /** Scene variant only: the run finished and is ready to go round again. */
+  onComplete?: () => void;
 }) {
   const [modeIndex, setModeIndex] = useState(0);
   const [stepCount, setStepCount] = useState(0);
@@ -59,11 +63,19 @@ export function ChatScreen({
     at(t, () => setSettled(true));
 
     // The scene variant holds the collapsed pill for a beat before opening
-    // out, so the pill is read as a pill first.
-    if (variant === "scene") at(HOLD_BEFORE_OPEN_MS, () => setExpanded(true));
+    // out, so the pill is read as a pill first — then shrinks back to it at
+    // the end and starts over.
+    if (variant === "scene") {
+      at(HOLD_BEFORE_OPEN_MS, () => setExpanded(true));
+      at(t, () => {
+        setExpanded(false);
+        setModeIndex(0);
+      });
+      at(t + LOOP_PAUSE_MS, () => onComplete?.());
+    }
 
     return () => timers.forEach(clearTimeout);
-  }, [variant]);
+  }, [variant, onComplete]);
 
   // Open on the newest turn, then keep it in frame as the answer lands.
   useEffect(() => {
@@ -83,7 +95,9 @@ export function ChatScreen({
         <ThinkingCard
           mode={mode}
           open={expanded}
-          settled={settled}
+          // The landscape loops, so the pill never parks on "Booked" — it
+          // returns to Thinking and goes again.
+          settled={false}
           onToggle={() => setExpanded((v) => !v)}
         />
       ) : (

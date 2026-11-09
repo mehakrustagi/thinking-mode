@@ -6,7 +6,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { useRef } from "react";
-import { HORSE, HORSE_FRAMES, HORSE_H, HORSE_W } from "@/lib/horse";
+import { RIG, horseSegments, sdCapsule, type Capsule } from "@/lib/horseRig";
 
 /**
  * The dot-matrix landscape the agent runs through while it thinks.
@@ -32,17 +32,23 @@ const DOT = 2.8;
 const COLORS = {
   star: "255,255,255",
   moon: "255,255,255",
-  far: "72,72,72",
-  mid: "116,116,116",
-  cap: "214,214,214",
+  far: "62,62,62",
+  mid: "98,98,98",
+  cap: "150,150,150",
   ground: "84,84,84",
   groundEdge: "150,150,150",
   horse: "255,255,255",
 };
 
+/** Strides per second. Continuous — there are no frames to step between. */
+const STRIDE_HZ = 2.6;
+/** Cells over which a dot fades out at the silhouette's edge. */
+const HALFTONE_FALLOFF = 1.0;
+/** The rig is authored at full size; the card is short, so it rides smaller. */
+const HORSE_SCALE = 0.68;
+
 /** Layer speeds in grid columns per second. */
 const SPEED = { stars: 0.4, far: 1.6, mid: 4.5, ground: 11 };
-const GALLOP_FPS = 11;
 
 /** Dots wipe in left to right, then the world starts moving. */
 const REVEAL_MS = 900;
@@ -110,6 +116,8 @@ export function PixelScene({
   const sizedFor = useRef("");
   const startedAt = useRef<number | null>(null);
   const off = useRef({ stars: 0, far: 0, mid: 0, ground: 0, gallop: 0 });
+  // Reused so the rig does not allocate 18 objects every frame.
+  const rigRef = useRef<Capsule[]>([]);
   const reduced = useReducedMotion();
 
   useAnimationFrame((time, delta) => {
@@ -158,15 +166,13 @@ export function PixelScene({
     o.far += SPEED.far * spin * dt;
     o.mid += SPEED.mid * spin * dt;
     o.ground += SPEED.ground * spin * dt;
-    o.gallop += GALLOP_FPS * spin * dt;
+    o.gallop += STRIDE_HZ * spin * dt;
 
     // ---- geometry ---------------------------------------------------------
     const cols = Math.ceil(width / PITCH) + 2;
     const rows = Math.floor(height / PITCH);
-    const groundTop = rows - 4;
-    const horseBase = groundTop - 1;
-    const horseCol = Math.round(cols * 0.3);
-    const skyRows = Math.max(groundTop - 10, 4);
+    const groundTop = rows - 3;
+    const skyRows = Math.max(groundTop - 9, 3);
     const half = PITCH / 2;
 
     const foliage = rgbOf(accent);
@@ -176,10 +182,13 @@ export function PixelScene({
       tuft: mix(foliage, 0.78),
     };
 
+    // Amplitudes scale with the sky so the skyline fills it whatever the card
+    // height is, instead of hugging the ground on a short one.
+    const sky = groundTop - 6;
     const farTop = (w: number) =>
-      groundTop - 2 - Math.round(Math.pow(fbm(w * 0.1, 1), 2.1) * 20);
+      groundTop - 2 - Math.round(Math.pow(fbm(w * 0.1, 1), 2.1) * sky * 1.15);
     const midTop = (w: number) =>
-      groundTop - 1 - Math.round(Math.pow(fbm(w * 0.17, 2), 2.1) * 14);
+      groundTop - 1 - Math.round(Math.pow(fbm(w * 0.17, 2), 2.1) * sky);
 
     const propAt = (bucket: number) => {
       const r = hash(bucket * 19.7);
@@ -203,6 +212,8 @@ export function PixelScene({
       row: number,
       alpha: number,
       frac: number,
+      /** 1 = a full dot; below that the dot shrinks, which is the halftone. */
+      size = 1,
     ) => {
       if (row < 0 || row >= rows) return;
       // Dots grow as the wipe passes over them, so the field blooms in.
@@ -214,7 +225,7 @@ export function PixelScene({
         x,
         row * PITCH + half,
         alpha * gate,
-        (DOT / 2) * (0.35 + 0.65 * gate),
+        (DOT / 2) * size * (0.35 + 0.65 * gate),
       ]);
     };
 
@@ -261,7 +272,7 @@ export function PixelScene({
         // Crest, plus the vertical run connecting this column to the previous
         // one — that is what keeps the skyline unbroken on a slope.
         for (let r = Math.min(top, prev); r <= top; r++)
-          put(color, c, r, r === top ? 1 : 0.75, frac);
+          put(color, c, r, r === top ? 0.9 : 0.65, frac);
         // Body of the hill: a third-density dither, so it has mass without
         // becoming a block.
         for (let r = top + 1; r < groundTop; r++)
@@ -270,8 +281,8 @@ export function PixelScene({
       }
     };
 
-    ridge(farTop, o.far, COLORS.far, 0.3, false);
-    ridge(midTop, o.mid, COLORS.mid, 0.4, true);
+    ridge(farTop, o.far, COLORS.far, 0.22, false);
+    ridge(midTop, o.mid, COLORS.mid, 0.3, true);
 
     // Props stand on the mid ridge.
     {
@@ -347,12 +358,36 @@ export function PixelScene({
     }
 
     // --- horse -------------------------------------------------------------
-    const frame = Math.floor(o.gallop) % HORSE_FRAMES;
-    const grid = HORSE[frame];
-    for (let r = 0; r < HORSE_H; r++)
-      for (let c = 0; c < HORSE_W; c++)
-        if (grid[r][c])
-          put(COLORS.horse, horseCol + c, horseBase - (HORSE_H - 1) + r, 1, 0);
+    // Sampled as a distance field: inside the silhouette dots are full size,
+    // and across the last cell or so at the edge they taper to nothing. That
+    // taper is the halftone, and it is also why the gallop reads as fluid —
+    // the edge moves continuously rather than a dot blinking on or off.
+    const segs = horseSegments(o.gallop % 1, rigRef.current);
+    const S = HORSE_SCALE;
+    const originRow = groundTop - Math.round(8.6 * S);
+    const originCol = Math.round(cols * 0.27);
+    const y0 = Math.floor(RIG.top * S);
+    const y1 = Math.ceil(RIG.bottom * S);
+    const x0 = Math.floor(RIG.left * S);
+    const x1 = Math.ceil(RIG.right * S);
+    for (let ly = y0; ly <= y1; ly++) {
+      for (let lx = x0; lx <= x1; lx++) {
+        const rx = lx / S;
+        const ry = ly / S;
+        let d = Infinity;
+        for (let i = 0; i < segs.length; i++) {
+          const v = sdCapsule(rx, ry, segs[i]);
+          if (v < d) d = v;
+        }
+        d *= S; // rig units -> grid cells
+        if (d >= HALFTONE_FALLOFF) continue;
+        let k = (HALFTONE_FALLOFF - d) / (2 * HALFTONE_FALLOFF);
+        if (k > 1) k = 1;
+        k = k * k * (3 - 2 * k); // smoothstep
+        if (k <= 0.04) continue;
+        put(COLORS.horse, originCol + lx, originRow + ly, 1, 0, k);
+      }
+    }
 
     // ---- flush, batched by colour then by quantised alpha/radius ----------
     for (const color in layers) {

@@ -28,45 +28,61 @@ The Figma page has one frame per mode — **Thinking**, **Checking**, **Analyzin
 | Answer | Placeholder bars shimmer until the run resolves, then blur out as the real answer reveals word by word. |
 | Inline chips | The `#002411 → #a1e000` gradient from the design, with a one-shot sweep on arrival — marks a live lookup rather than emphasis. |
 
+Thinking's label uses that same `#002411 → #a1e000` gradient, with the sweep
+highlight threaded between its two stops. The other three derive both ends from
+their dot's hue.
+
 Everything honours `prefers-reduced-motion` via `MotionConfig reducedMotion="user"`.
 
 ## The landscape (`/pixel`)
 
 The same black capsule, opened out into a window. One `layout` spring morphs
-161×44 r60 into 313×112 r28 and the contents cross-fade inside it; the scene
+the pill into a 313×88 card and the contents cross-fade inside it; the scene
 stays mounted through the morph so the horse never restarts its gallop.
 
-**Sequence.** The pill holds in its exact collapsed form for 2s, then the box
-grows, then — a beat later — the dots sweep in left to right over 900ms and the
-world spins up to speed. Nothing arrives at once.
+**Sequence.** The pill holds in its exact collapsed form for 2s. The box grows.
+A beat later the dots sweep in left to right over 900ms and the world spins up
+to speed. The four modes run. Then the card shrinks back to the pill, which
+reads Thinking again, and the whole thing goes round.
 
 `PixelScene` is a canvas drawing one grid of dots on a 4px pitch — sky, ridges,
 ground and horse all snap to the same lattice, which is what makes it read as a
 single display rather than sprites on a drawing. Terrain is sampled by absolute
 world column from a seeded value-noise, squared so the profile stays low and
 spikes into peaks, so every layer scrolls forever without holding state; only
-the offsets advance.
+the offsets advance. Four parallax rates, in grid columns per second: stars 0.4,
+far ridge 1.6, mid ridge 4.5, ground 11.
 
-**Fluid and crisp are in tension here, and both are solved explicitly:**
+### The horse
+
+Not a sprite sheet. `horseRig.ts` is an articulated rig — barrel, neck, head,
+tail and four jointed legs as capsules — whose joints are continuous functions
+of the gallop phase. Each leg's hip swing is a sine and its knee flex a raised
+cosine a quarter-cycle behind; the four legs are phase-offset into a transverse
+gallop, and the body takes one bounce per stride.
+
+The scene samples that rig as a signed distance field. A dot's **size** is how
+deep inside the silhouette its cell sits, so dots run full size through the body
+and taper to nothing across the last cell at the edge. That is the halftone —
+and it is also why the gait reads as fluid rather than as frames: the edge moves
+continuously, instead of a dot blinking on or off.
+
+### Fluid and crisp are in tension here, and both are solved explicitly
 
 - The *pattern* has to advance one lattice cell at a time — it is a dot grid.
   Scrolling it that way jumps 4px eleven times a second. So the field is drawn
   at a fractional pixel offset instead: the pattern steps, the dots glide.
 - Fractional positions blur a dot. So every position is snapped to a whole
   *device* pixel. At dpr 3 that is still 33 sub-steps per cell, so nothing
-  visibly steps, and every dot has a hard edge.
+  visibly steps, and every dot keeps a hard edge.
 - The backing store is keyed on `width×height@dpr`, not just CSS size. Browser
   zoom changes dpr, and a canvas sized for the old one is what turns the whole
   scene to mush.
 - The loop runs on framer's `useAnimationFrame`, not its own `requestAnimation-
   Frame`, so it is scheduled alongside the layout springs driving the card
   rather than competing with them for the same frame.
-
-Four parallax rates, in grid columns per second: stars 0.4, far ridge 1.6, mid
-ridge 4.5, ground 11. The horse is a 22×15 sprite in four frames — extension,
-gather, push-off, suspension — at 11fps, with the body identical in each and
-only the legs and a one-row bob changing. That's what keeps the silhouette
-readable at a 2.4px dot.
+- Nothing but the horse and the moon is allowed to be white. The skyline caps
+  were, and the horse vanished into them.
 
 Foliage takes the active mode's colour, so the landscape shifts from lime to
 gold to teal as the run proceeds.

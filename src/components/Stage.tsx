@@ -2,7 +2,7 @@
 
 import { MotionConfig, motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ChatScreen } from "./ChatScreen";
 import { EASE_OUT } from "@/lib/motion";
 
@@ -19,6 +19,7 @@ export function Stage({
   other: { href: string; label: string };
 }) {
   const [runId, setRunId] = useState(0);
+  const again = useCallback(() => setRunId((v) => v + 1), []);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -33,13 +34,17 @@ export function Stage({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: EASE_OUT }}
         >
-          <ChatScreen key={runId} variant={variant} />
+          <ChatScreen
+            key={runId}
+            variant={variant}
+            onComplete={variant === "scene" ? again : undefined}
+          />
         </motion.div>
 
         <div className="flex items-center gap-[14px] text-[12px] font-medium tracking-[-0.12px] text-white/40">
           <button
             type="button"
-            onClick={() => setRunId((v) => v + 1)}
+            onClick={again}
             className="rounded-full border border-white/15 px-[14px] py-[7px] text-white/70 transition-colors hover:border-white/35 hover:text-white"
           >
             Replay
