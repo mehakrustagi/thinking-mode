@@ -44,8 +44,18 @@ const COLORS = {
 const STRIDE_HZ = 2.6;
 /** Cells over which a dot fades out at the silhouette's edge. */
 const HALFTONE_FALLOFF = 1.0;
-/** The rig is authored at full size; the card is short, so it rides smaller. */
-const HORSE_SCALE = 0.68;
+/** The rig is authored at full size; it is scaled to fit the scene band. */
+const HORSE_SCALE_MAX = 0.68;
+/** Rig units from the top of the ears to the hooves, and from origin to hoof. */
+const RIG_TALL = 16.6;
+const RIG_DROP = 8.6;
+
+/**
+ * Share of the card that stays open sky. Nothing in the landscape may rise
+ * into it: the label needs air beneath it, and the scene reads better as a
+ * strip of ground under a lot of night than as a full frame.
+ */
+const SKY_BAND = 0.5;
 
 /** Layer speeds in grid columns per second. */
 const SPEED = { stars: 0.4, far: 1.6, mid: 4.5, ground: 11 };
@@ -172,7 +182,10 @@ export function PixelScene({
     const cols = Math.ceil(width / PITCH) + 2;
     const rows = Math.floor(height / PITCH);
     const groundTop = rows - 3;
-    const skyRows = Math.max(groundTop - 9, 3);
+    // Ceiling for every moving thing: ridges, props, the horse and the moon.
+    const ceilRow = Math.ceil(rows * SKY_BAND);
+    const band = groundTop - ceilRow;
+    const skyRows = Math.max(ceilRow - 1, 2);
     const half = PITCH / 2;
 
     const foliage = rgbOf(accent);
@@ -182,13 +195,20 @@ export function PixelScene({
       tuft: mix(foliage, 0.78),
     };
 
-    // Amplitudes scale with the sky so the skyline fills it whatever the card
-    // height is, instead of hugging the ground on a short one.
-    const sky = groundTop - 6;
+    // Amplitudes fill the band below the ceiling, whatever the card height is,
+    // and are clamped so a tall peak can never reach the label.
     const farTop = (w: number) =>
-      groundTop - 2 - Math.round(Math.pow(fbm(w * 0.1, 1), 2.1) * sky * 1.15);
+      Math.max(
+        ceilRow,
+        groundTop - 2 - Math.round(Math.pow(fbm(w * 0.1, 1), 2.1) * band),
+      );
     const midTop = (w: number) =>
-      groundTop - 1 - Math.round(Math.pow(fbm(w * 0.17, 2), 2.1) * sky);
+      Math.max(
+        ceilRow + 1,
+        groundTop -
+          1 -
+          Math.round(Math.pow(fbm(w * 0.17, 2), 2.1) * (band - 2)),
+      );
 
     const propAt = (bucket: number) => {
       const r = hash(bucket * 19.7);
@@ -247,18 +267,12 @@ export function PixelScene({
       );
     }
 
-    const MOON = ["..#..", ".###.", "#####", ".###.", "..#.."];
-    MOON.forEach((line, r) =>
-      [...line].forEach((ch, c) => {
-        if (ch === "#") put(COLORS.moon, cols - 11 + c, 1 + r, 0.85, 0);
-      }),
-    );
-
     // --- ridges ------------------------------------------------------------
     const ridge = (
       topAt: (w: number) => number,
       offset: number,
       color: string,
+      crest: number,
       fill: number,
       caps: boolean,
     ) => {
@@ -272,7 +286,7 @@ export function PixelScene({
         // Crest, plus the vertical run connecting this column to the previous
         // one — that is what keeps the skyline unbroken on a slope.
         for (let r = Math.min(top, prev); r <= top; r++)
-          put(color, c, r, r === top ? 0.9 : 0.65, frac);
+          put(color, c, r, r === top ? crest : crest * 0.72, frac);
         // Body of the hill: a third-density dither, so it has mass without
         // becoming a block.
         for (let r = top + 1; r < groundTop; r++)
@@ -281,8 +295,15 @@ export function PixelScene({
       }
     };
 
-    ridge(farTop, o.far, COLORS.far, 0.22, false);
-    ridge(midTop, o.mid, COLORS.mid, 0.3, true);
+    ridge(farTop, o.far, COLORS.far, 0.42, 0.18, false);
+    ridge(midTop, o.mid, COLORS.mid, 0.95, 0.32, true);
+
+    const MOON = ["..#..", ".###.", "#####", ".###.", "..#.."];
+    MOON.forEach((line, r) =>
+      [...line].forEach((c, i) => {
+        if (c === "#") put(COLORS.moon, cols - 10 + i, 1 + r, 0.8, 0);
+      }),
+    );
 
     // Props stand on the mid ridge.
     {
@@ -293,8 +314,8 @@ export function PixelScene({
         if (w % 6 !== 0) continue;
         const bucket = Math.floor(w / 6);
         if (hash(bucket * 11.3) <= 0.52) continue;
-        const top = midTop(w);
         const p = propAt(bucket);
+        const top = Math.max(midTop(w), ceilRow + p.h);
         if (p.kind === "pine") {
           for (let r = 0; r < p.h; r++) {
             const halfW = Math.floor((r * (p.w - 1)) / (2 * (p.h - 1)));
@@ -363,8 +384,8 @@ export function PixelScene({
     // taper is the halftone, and it is also why the gallop reads as fluid —
     // the edge moves continuously rather than a dot blinking on or off.
     const segs = horseSegments(o.gallop % 1, rigRef.current);
-    const S = HORSE_SCALE;
-    const originRow = groundTop - Math.round(8.6 * S);
+    const S = Math.min(HORSE_SCALE_MAX, (band + 0.6) / RIG_TALL);
+    const originRow = groundTop - Math.round(RIG_DROP * S);
     const originCol = Math.round(cols * 0.27);
     const y0 = Math.floor(RIG.top * S);
     const y1 = Math.ceil(RIG.bottom * S);

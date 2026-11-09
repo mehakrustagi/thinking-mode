@@ -45,6 +45,13 @@ A beat later the dots sweep in left to right over 900ms and the world spins up
 to speed. The four modes run. Then the card shrinks back to the pill, which
 reads Thinking again, and the whole thing goes round.
 
+**The sky is half the card, and nothing is allowed into it.** `SKY_BAND` sets
+that share; every ridge, prop and the horse itself is clamped below it, and the
+horse is *scaled* from whatever band is left rather than being a fixed size. So
+the label always has air beneath it, and changing the card height re-fits the
+landscape instead of cropping it. The moon stays up in the corner, far from the
+centred label, and draws after the ridges so they never occlude it.
+
 `PixelScene` is a canvas drawing one grid of dots on a 4px pitch — sky, ridges,
 ground and horse all snap to the same lattice, which is what makes it read as a
 single display rather than sprites on a drawing. Terrain is sampled by absolute
