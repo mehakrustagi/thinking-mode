@@ -8,6 +8,8 @@ import type { ThemeName } from "@/lib/palette";
 
 export type GalleryItem = {
   id: string;
+  /** Items are shown under their group's heading, in first-seen order. */
+  group?: string;
   /** Shown under the card. */
   name: string;
   /** One line on what it is for — when this loader is the right one. */
@@ -36,7 +38,7 @@ export function Gallery({
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="mx-auto flex min-h-dvh w-full max-w-[760px] flex-col gap-[28px] px-[24px] py-[56px]">
+      <main className="mx-auto flex min-h-dvh w-full max-w-[1080px] flex-col gap-[40px] px-[24px] py-[56px]">
         <header className="flex flex-wrap items-center gap-[12px]">
           <h1 className="mr-auto text-[15px] font-semibold tracking-[-0.3px] text-white/80">
             {title}
@@ -62,38 +64,65 @@ export function Gallery({
         {items.length === 0 ? (
           <p className="text-[13px] text-white/35">Nothing here yet.</p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(313px,1fr))] gap-x-[24px] gap-y-[28px]">
-            {items.map((item, i) => (
-              <motion.div
-                key={item.id}
-                className="flex flex-col gap-[10px]"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: EASE_OUT, delay: i * 0.05 }}
-              >
-                <div
-                  className={`relative grid w-full place-items-center overflow-hidden rounded-[28px] ${
-                    day ? "border border-[#e7e3db] bg-[#fbfaf7]" : "bg-black"
-                  }`}
-                  style={{ minHeight: item.minHeight ?? 88 }}
-                >
-                  {item.render(theme)}
-                </div>
-                <div className="px-[4px]">
-                  <p className="text-[13px] font-medium tracking-[-0.13px] text-white/70">
-                    {item.name}
-                  </p>
-                  {item.note && (
-                    <p className="mt-[2px] text-[12px] leading-[17px] text-white/35">
-                      {item.note}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          groups(items).map(([group, rows]) => (
+            <section key={group} className="flex flex-col gap-[16px]">
+              {group && (
+                <h2 className="text-[12px] font-medium uppercase tracking-[0.08em] text-white/30">
+                  {group}
+                </h2>
+              )}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-[20px] gap-y-[26px]">
+                {rows.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    className="flex flex-col gap-[10px]"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.45,
+                      ease: EASE_OUT,
+                      delay: Math.min(i, 8) * 0.035,
+                    }}
+                  >
+                    <div
+                      className={`relative grid w-full place-items-center overflow-hidden rounded-[24px] ${
+                        day
+                          ? "border border-[#e7e3db] bg-[#fbfaf7]"
+                          : "bg-black"
+                      }`}
+                      style={{ minHeight: item.minHeight ?? 112 }}
+                    >
+                      {item.render(theme)}
+                    </div>
+                    <div className="px-[4px]">
+                      <p className="text-[13px] font-medium tracking-[-0.13px] text-white/70">
+                        {item.name}
+                      </p>
+                      {item.note && (
+                        <p className="mt-[2px] text-[12px] leading-[17px] text-white/35">
+                          {item.note}
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+          ))
         )}
       </main>
     </MotionConfig>
   );
+}
+
+/** Group items by their `group`, keeping first-seen order. */
+function groups(items: GalleryItem[]): [string, GalleryItem[]][] {
+  const out = new Map<string, GalleryItem[]>();
+  for (const item of items) {
+    const key = item.group ?? "";
+    const list = out.get(key);
+    if (list) list.push(item);
+    else out.set(key, [item]);
+  }
+  return [...out.entries()];
 }

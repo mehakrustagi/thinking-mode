@@ -1,5 +1,6 @@
 "use client";
 
+import "generative-loaders/styles.css";
 import { Gallery } from "@/components/Gallery";
 import { LOADERS } from "@/lib/loaders";
 

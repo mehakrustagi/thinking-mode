@@ -17,6 +17,12 @@ Two variants of the same run:
 | `/scenes` | All four scenes side by side, either palette — for judging them on their own. |
 | `/loaders` | A shelf of loading animations, same card, either palette. Adding one is an entry in `lib/loaders.tsx`. |
 
+The loaders page carries the three built here plus all 39 variants of
+[`generative-loaders`](https://www.npmjs.com/package/generative-loaders) —
+image, inline and text — each passed our Thinking accent rather than its own
+default. That matters: its `TextLoader` defaults to `#111111`, which is
+invisible on the black card the status element actually lives on.
+
 ## What runs
 
 The Figma page has one frame per mode — **Thinking**, **Checking**, **Analyzing**,
