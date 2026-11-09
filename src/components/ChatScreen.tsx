@@ -11,7 +11,12 @@ import { Skeleton } from "./Skeleton";
 import { ThinkingCard } from "./ThinkingCard";
 import { ThinkingPill } from "./ThinkingPill";
 import { WordReveal } from "./WordReveal";
-import { MODES, MODE_DURATION_MS, STEP_INTERVAL_MS } from "@/lib/modes";
+import {
+  HOLD_BEFORE_OPEN_MS,
+  MODES,
+  MODE_DURATION_MS,
+  STEP_INTERVAL_MS,
+} from "@/lib/modes";
 import { EASE_OUT } from "@/lib/motion";
 
 /**
@@ -31,7 +36,7 @@ export function ChatScreen({
   const [modeIndex, setModeIndex] = useState(0);
   const [stepCount, setStepCount] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [expanded, setExpanded] = useState(variant === "scene");
+  const [expanded, setExpanded] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   // Replay remounts this component (it is keyed on the run), so the chain only
@@ -53,8 +58,12 @@ export function ChatScreen({
     });
     at(t, () => setSettled(true));
 
+    // The scene variant holds the collapsed pill for a beat before opening
+    // out, so the pill is read as a pill first.
+    if (variant === "scene") at(HOLD_BEFORE_OPEN_MS, () => setExpanded(true));
+
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [variant]);
 
   // Open on the newest turn, then keep it in frame as the answer lands.
   useEffect(() => {

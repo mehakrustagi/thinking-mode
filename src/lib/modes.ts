@@ -72,4 +72,6 @@ export const labelBase = (hue: number) => `hsl(${hue} 100% 60% / 0.42)`;
 export const labelPeak = (hue: number) => `hsl(${hue} 100% 66%)`;
 
 export const MODE_DURATION_MS = 3400;
+/** How long the landscape variant holds the plain pill before opening out. */
+export const HOLD_BEFORE_OPEN_MS = 2000;
 export const STEP_INTERVAL_MS = 950;

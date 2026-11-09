@@ -36,12 +36,31 @@ The same black capsule, opened out into a window. One `layout` spring morphs
 161×44 r60 into 313×112 r28 and the contents cross-fade inside it; the scene
 stays mounted through the morph so the horse never restarts its gallop.
 
+**Sequence.** The pill holds in its exact collapsed form for 2s, then the box
+grows, then — a beat later — the dots sweep in left to right over 900ms and the
+world spins up to speed. Nothing arrives at once.
+
 `PixelScene` is a canvas drawing one grid of dots on a 4px pitch — sky, ridges,
 ground and horse all snap to the same lattice, which is what makes it read as a
 single display rather than sprites on a drawing. Terrain is sampled by absolute
 world column from a seeded value-noise, squared so the profile stays low and
 spikes into peaks, so every layer scrolls forever without holding state; only
 the offsets advance.
+
+**Fluid and crisp are in tension here, and both are solved explicitly:**
+
+- The *pattern* has to advance one lattice cell at a time — it is a dot grid.
+  Scrolling it that way jumps 4px eleven times a second. So the field is drawn
+  at a fractional pixel offset instead: the pattern steps, the dots glide.
+- Fractional positions blur a dot. So every position is snapped to a whole
+  *device* pixel. At dpr 3 that is still 33 sub-steps per cell, so nothing
+  visibly steps, and every dot has a hard edge.
+- The backing store is keyed on `width×height@dpr`, not just CSS size. Browser
+  zoom changes dpr, and a canvas sized for the old one is what turns the whole
+  scene to mush.
+- The loop runs on framer's `useAnimationFrame`, not its own `requestAnimation-
+  Frame`, so it is scheduled alongside the layout springs driving the card
+  rather than competing with them for the same frame.
 
 Four parallax rates, in grid columns per second: stars 0.4, far ridge 1.6, mid
 ridge 4.5, ground 11. The horse is a 22×15 sprite in four frames — extension,
