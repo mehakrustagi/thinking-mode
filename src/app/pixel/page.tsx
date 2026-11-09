@@ -9,6 +9,7 @@ export default function PixelPage() {
       links={[
         { href: "/", label: "← Steps" },
         { href: "/day", label: "Daylight →" },
+        { href: "/scenes", label: "All scenes →" },
       ]}
     />
   );

@@ -10,6 +10,7 @@ export default function DayPage() {
       links={[
         { href: "/", label: "← Steps" },
         { href: "/pixel", label: "← Night runner" },
+        { href: "/scenes", label: "All scenes →" },
       ]}
     />
   );

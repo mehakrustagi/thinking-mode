@@ -14,6 +14,7 @@ const SETTLED: Mode = {
   dot: "#01ddd6",
   hue: 178,
   muted: "#6d7fa6",
+  shape: "diamond",
   steps: [],
 };
 

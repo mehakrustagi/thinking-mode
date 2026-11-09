@@ -12,8 +12,9 @@ Two variants of the same run:
 | Route | What the pill opens into |
 | --- | --- |
 | `/` | The agent's steps — a done / active / pending ladder. |
-| `/pixel` | A dot-matrix runner, at night. |
-| `/day` | The same runner in the woven daylight palette. |
+| `/pixel` | The dot-matrix scenes, at night. |
+| `/day` | The same scenes in the woven daylight palette. |
+| `/scenes` | All four scenes side by side, either palette — for judging them on their own. |
 
 ## What runs
 
@@ -35,12 +36,23 @@ their dot's hue.
 
 Everything honours `prefers-reduced-motion` via `MotionConfig reducedMotion="user"`.
 
-## The runner (`/pixel`, `/day`)
+## The scenes (`/pixel`, `/day`)
 
-The same black capsule, opened out into a window on a side-scrolling strip —
-built to feel like the Chrome dino game: one flat ground line of dots with grit
-scattered under it, cacti coming at you, clouds drifting over, and a runner
-that **jumps**. The run accelerates as it goes.
+The same black capsule, opened out into a window — and what is in the window
+depends on what the agent is doing. The engine (`PixelScene`) owns the grid,
+the clock and the paint; `scenes.ts` owns what goes on it.
+
+| Mode | Scene | Mark |
+| --- | --- | --- |
+| Thinking | A side-scrolling runner, in the shape of the Chrome dino game: one flat ground line with grit, cacti coming at you, clouds overhead, and a horse that **jumps**. The run accelerates. | circles |
+| Checking | A field of records drifting past while a bright head sweeps across them. Entries go hot as it reaches them and cool back to grey behind it, so only a band around the head is lit. | rounded squares |
+| Analyzing | A scrolling bar field with the top of each bar in the mode's colour, and a read-head walking the series. | bars |
+| Booking | An airliner holding station while three depths of cloud go past beneath it, trailing a contrail that lags its own bob. The ground is a sparse line a long way below. | diamonds |
+
+The mark belongs to the **mode**, not the theme — same lattice, different nib —
+so each scene is drawn with its own in either palette. A mode change wipes the
+new scene over the old one from the left, reusing the same edge that reveals
+the scene on open.
 
 **Sequence.** The pill holds in its exact collapsed form for 2s. The box grows.
 A beat later the dots sweep in left to right over 900ms and the world spins up
@@ -58,15 +70,18 @@ corner radius rides the same spring as the size, outgoing content leaves faster
 than the shape moves (130ms), incoming content arrives late and scales up into
 place, and nothing inside translates — it scales from the centre.
 
-### The horse
+### The subjects
 
-Not a sprite sheet. `horseRig.ts` is an articulated rig — barrel, neck, head,
+Neither the horse nor the plane is a sprite sheet. `horseRig.ts` is an
+articulated rig — barrel, neck, head,
 tail and four jointed legs as capsules — whose joints are continuous functions
 of the gallop phase. Each leg's hip swing is a sine and its knee flex a raised
 cosine a quarter-cycle behind; the four are phase-offset into a transverse
 gallop, and the body takes one bounce per stride. `RIG_DROP` and `RIG_TALL` are
 measured over a full stride rather than eyeballed, so the hooves graze the
-ground line at full extension at any scale.
+ground line at full extension at any scale. `plane.ts` is the same
+construction standing still — capsules whose round caps make the nose and the
+tail — so the two read as one drawing system rather than two sprites.
 
 The scene samples that rig as a signed distance field. A dot's **size** is how
 deep inside the silhouette its cell sits — full size anywhere inside, tapering

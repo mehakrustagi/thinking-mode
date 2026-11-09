@@ -137,6 +137,7 @@ export function ThinkingCard({
           <PixelScene
             width={CARD.w}
             height={CARD.h}
+            scene={shown.id}
             active={sceneOn}
             running={!settled}
             accent={day ? shown.muted : shown.dot}

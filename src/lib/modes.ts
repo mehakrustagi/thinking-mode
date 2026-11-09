@@ -9,6 +9,13 @@
  */
 export type ModeId = "thinking" | "checking" | "analyzing" | "booking";
 
+/**
+ * The mark each mode's grid is drawn with. Same lattice, different nib: the
+ * runner's round dots read as a display, the scan's squares as records, the
+ * chart's bars as measurement, the flight's diamonds as open sky.
+ */
+export type DotShape = "circle" | "square" | "bar" | "diamond";
+
 export type Mode = {
   id: ModeId;
   label: string;
@@ -20,6 +27,8 @@ export type Mode = {
   grad?: [string, string];
   /** The same mode in the daylight palette — muted enough to sit on paper. */
   muted: string;
+  /** Each mode draws its grid with its own mark. */
+  shape: DotShape;
   /** What the agent is actually doing, streamed one line at a time. */
   steps: string[];
 };
@@ -27,6 +36,7 @@ export type Mode = {
 export const MODES: Mode[] = [
   {
     id: "thinking",
+    shape: "circle",
     muted: "#6f8f62",
     label: "Thinking",
     dot: "#a1e000",
@@ -41,6 +51,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "checking",
+    shape: "square",
     muted: "#b0893a",
     label: "Checking",
     dot: "#c7aa00",
@@ -53,6 +64,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "analyzing",
+    shape: "bar",
     muted: "#c8663a",
     label: "Analyzing",
     dot: "#ddaa01",
@@ -65,6 +77,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "booking",
+    shape: "diamond",
     muted: "#6d7fa6",
     label: "Booking",
     dot: "#01ddd6",

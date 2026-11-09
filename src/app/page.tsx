@@ -9,6 +9,7 @@ export default function Page() {
       links={[
         { href: "/pixel", label: "Night runner →" },
         { href: "/day", label: "Daylight →" },
+        { href: "/scenes", label: "All scenes →" },
       ]}
     />
   );
