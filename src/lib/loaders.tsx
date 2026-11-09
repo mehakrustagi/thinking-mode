@@ -157,4 +157,15 @@ const TEXT: GalleryItem[] = TEXT_VARIANTS.map((variant) => ({
   ),
 }));
 
-export const LOADERS: GalleryItem[] = [...HOUSE, ...IMAGE, ...INLINE, ...TEXT];
+/**
+ * Which families are on the shelf. The text loaders are built and ready —
+ * flip this to true to bring them back.
+ */
+const SHOW = { house: true, image: true, inline: true, text: false };
+
+export const LOADERS: GalleryItem[] = [
+  ...(SHOW.house ? HOUSE : []),
+  ...(SHOW.image ? IMAGE : []),
+  ...(SHOW.inline ? INLINE : []),
+  ...(SHOW.text ? TEXT : []),
+];
