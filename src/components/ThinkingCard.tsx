@@ -7,9 +7,10 @@ import { DotMatrix } from "./DotMatrix";
 import { PixelScene } from "./PixelScene";
 import { ShimmerText } from "./ShimmerText";
 import { labelImage, type Mode } from "@/lib/modes";
-import { EASE_OUT, MORPH, SWAP } from "@/lib/motion";
+import type { ThemeName } from "@/lib/palette";
+import { EASE_OUT, ISLAND_IN, ISLAND_OUT, MORPH, SWAP } from "@/lib/motion";
 
-const CARD = { w: 313, h: 88, r: 24 };
+const CARD = { w: 313, h: 88, r: 28 };
 const PILL_R = 60;
 
 /** Beat between the box finishing its growth and the dots starting to arrive. */
@@ -27,14 +28,17 @@ export function ThinkingCard({
   mode,
   open,
   settled,
+  theme = "night",
   onToggle,
 }: {
   mode: Mode;
   open: boolean;
   settled: boolean;
+  theme?: ThemeName;
   onToggle: () => void;
 }) {
   const shown = mode;
+  const day = theme === "day";
   const [sceneOn, setSceneOn] = useState(false);
 
   useEffect(() => {
@@ -52,7 +56,11 @@ export function ThinkingCard({
         transition={SWAP}
         className="block whitespace-nowrap text-[14px] font-semibold leading-[20px] tracking-[-0.28px]"
       >
-        <ShimmerText active={!settled} duration={2.2} image={labelImage(shown)}>
+        <ShimmerText
+          active={!settled}
+          duration={2.2}
+          image={labelImage(shown, theme)}
+        >
           {shown.label}
           {settled ? "" : "..."}
         </ShimmerText>
@@ -68,27 +76,35 @@ export function ThinkingCard({
         aria-expanded={open}
         aria-label={`${shown.label} — ${open ? "collapse" : "expand"}`}
         layout
-        className={`pointer-events-auto relative overflow-hidden bg-black outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-          open ? "h-[88px] w-[313px]" : "h-[44px]"
-        }`}
+        className={`pointer-events-auto relative overflow-hidden outline-none focus-visible:ring-2 ${
+          day
+            ? "border border-[#e7e3db] bg-[#fbfaf7] focus-visible:ring-black/20"
+            : "bg-black focus-visible:ring-white/40"
+        } ${open ? "h-[88px] w-[313px]" : "h-[44px]"}`}
         initial={{ opacity: 0, scale: 0.82, y: -10, filter: "blur(8px)" }}
         animate={{
           opacity: 1,
           scale: 1,
           y: 0,
           filter: "blur(0px)",
+          // Radius rides the same spring as the size, so the capsule never
+          // looks like it is being re-cut mid-morph.
           borderRadius: open ? CARD.r : PILL_R,
         }}
         transition={{ ...MORPH, filter: { duration: 0.4, ease: EASE_OUT } }}
         whileTap={{ scale: 0.975 }}
-        style={{ boxShadow: "0 18px 40px -12px rgba(0,0,0,0.45)" }}
+        style={{
+          boxShadow: day
+            ? "0 14px 30px -14px rgba(60,60,80,0.28)"
+            : "0 18px 40px -12px rgba(0,0,0,0.45)",
+        }}
       >
         {/* Collapsed: the pill, exactly. In flow so it sets the box's width. */}
         <motion.span
           className={
             open
-              ? "absolute inset-0 flex items-center pl-[20px] pr-[10px]"
-              : "flex h-full items-center pl-[20px] pr-[10px]"
+              ? "absolute inset-0 flex origin-center items-center pl-[20px] pr-[10px]"
+              : "flex h-full origin-center items-center pl-[20px] pr-[10px]"
           }
           animate={{ opacity: open ? 0 : 1 }}
           transition={{
@@ -97,7 +113,7 @@ export function ThinkingCard({
             delay: open ? 0 : 0.14,
           }}
         >
-          <DotMatrix color={shown.dot} active={!settled} />
+          <DotMatrix color={day ? shown.muted : shown.dot} active={!settled} />
           <span className="relative ml-[12px] mr-[7px] flex items-center">
             {label}
           </span>
@@ -114,16 +130,17 @@ export function ThinkingCard({
 
         {/* Expanded: the scene, with the label moved up over the sky. */}
         <motion.span
-          className="absolute inset-0"
-          animate={{ opacity: open ? 1 : 0 }}
-          transition={{ duration: 0.3, ease: EASE_OUT, delay: open ? 0.16 : 0 }}
+          className="absolute inset-0 origin-center"
+          animate={{ opacity: open ? 1 : 0, scale: open ? 1 : 0.94 }}
+          transition={open ? ISLAND_IN : ISLAND_OUT}
         >
           <PixelScene
             width={CARD.w}
             height={CARD.h}
             active={sceneOn}
             running={!settled}
-            accent={shown.dot}
+            accent={day ? shown.muted : shown.dot}
+            theme={theme}
           />
           <span className="absolute inset-x-0 top-[10px] flex justify-center">
             {label}

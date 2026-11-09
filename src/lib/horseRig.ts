@@ -23,7 +23,15 @@ export type Capsule = {
 };
 
 /** How far the rig reaches from its origin, for bounding the sample window. */
-export const RIG = { left: -14, right: 14, top: -9, bottom: 10 };
+export const RIG = { left: -14, right: 14, top: -9, bottom: 11 };
+
+/**
+ * Measured over a full stride, not eyeballed: the lowest a hoof gets and the
+ * highest the ears get. The scene places the origin off DROP so the hooves
+ * graze the ground line at full extension, and sizes the rig off TALL.
+ */
+export const RIG_DROP = 10.0;
+export const RIG_TALL = 18.7;
 
 const TAU = Math.PI * 2;
 const RAD = Math.PI / 180;
@@ -93,8 +101,8 @@ export function horseSegments(t: number, out: Capsule[] = []): Capsule[] {
 
   for (const g of GAIT) {
     const p = (t + g.phase) % 1;
-    if (g.hind) leg(out, -4.4, 1.7 + bob, 3.3, 3.6, p, 50, 10, 92, 1.2, 0.85);
-    else leg(out, 2.0, 1.5 + bob, 3.2, 3.6, p, 46, 6, 86, 1.2, 0.85);
+    if (g.hind) leg(out, -4.4, 1.7 + bob, 3.3, 3.6, p, 50, 10, 92, 1.35, 1.05);
+    else leg(out, 2.0, 1.5 + bob, 3.2, 3.6, p, 46, 6, 86, 1.35, 1.05);
   }
   return out;
 }

@@ -19,6 +19,7 @@ import {
   STEP_INTERVAL_MS,
 } from "@/lib/modes";
 import { EASE_OUT } from "@/lib/motion";
+import type { ThemeName } from "@/lib/palette";
 
 /**
  * The run: the status element walks the four modes, each one streaming its own
@@ -31,9 +32,11 @@ import { EASE_OUT } from "@/lib/motion";
  */
 export function ChatScreen({
   variant = "steps",
+  theme = "night",
   onComplete,
 }: {
   variant?: "steps" | "scene";
+  theme?: ThemeName;
   /** Scene variant only: the run finished and is ready to go round again. */
   onComplete?: () => void;
 }) {
@@ -98,6 +101,7 @@ export function ChatScreen({
           // The landscape loops, so the pill never parks on "Booked" — it
           // returns to Thinking and goes again.
           settled={false}
+          theme={theme}
           onToggle={() => setExpanded((v) => !v)}
         />
       ) : (

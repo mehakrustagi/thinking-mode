@@ -6,7 +6,22 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { useRef } from "react";
-import { RIG, horseSegments, sdCapsule, type Capsule } from "@/lib/horseRig";
+import {
+  RIG,
+  RIG_DROP,
+  RIG_TALL,
+  horseSegments,
+  sdCapsule,
+  type Capsule,
+} from "@/lib/horseRig";
+import { PALETTES, type ThemeName } from "@/lib/palette";
+import {
+  CACTUS_MAX_H,
+  CACTUS_SPACING,
+  CLOUD_SPACING,
+  cactusInSlot,
+  cloudInSlot,
+} from "@/lib/scenery";
 
 /**
  * The dot-matrix landscape the agent runs through while it thinks.
@@ -29,36 +44,30 @@ import { RIG, horseSegments, sdCapsule, type Capsule } from "@/lib/horseRig";
 const PITCH = 4;
 const DOT = 2.8;
 
-const COLORS = {
-  star: "255,255,255",
-  moon: "255,255,255",
-  far: "62,62,62",
-  mid: "98,98,98",
-  cap: "150,150,150",
-  ground: "84,84,84",
-  groundEdge: "150,150,150",
-  horse: "255,255,255",
-};
-
 /** Strides per second. Continuous — there are no frames to step between. */
 const STRIDE_HZ = 2.6;
 /** Cells over which a dot fades out at the silhouette's edge. */
 const HALFTONE_FALLOFF = 1.0;
 /** The rig is authored at full size; it is scaled to fit the scene band. */
-const HORSE_SCALE_MAX = 0.68;
-/** Rig units from the top of the ears to the hooves, and from origin to hoof. */
-const RIG_TALL = 16.6;
-const RIG_DROP = 8.6;
-
+const HORSE_SCALE_MAX = 0.78;
 /**
- * Share of the card that stays open sky. Nothing in the landscape may rise
- * into it: the label needs air beneath it, and the scene reads better as a
- * strip of ground under a lot of night than as a full frame.
+ * Share of the card the label keeps for itself. Nothing reaches into it —
+ * not the horse at the top of its jump, not a cactus, not a cloud.
  */
-const SKY_BAND = 0.5;
+const LABEL_BAND = 0.3;
 
-/** Layer speeds in grid columns per second. */
-const SPEED = { stars: 0.4, far: 1.6, mid: 4.5, ground: 11 };
+/** How high the horse rises, in rows. Sized to clear the tallest cactus. */
+const JUMP_ROWS = CACTUS_MAX_H + 0.6;
+/** Columns of run-up and of landing the jump arc covers. */
+const JUMP_BEFORE = 6;
+const JUMP_AFTER = 5;
+/** Legs stop cycling in the air and hold near full extension. */
+const AIRBORNE_POSE = 0.06;
+
+/** Layer speeds in grid columns per second, at speed factor 1. */
+const SPEED = { stars: 0.25, clouds: 1.4, ground: 13 };
+/** The run accelerates, like the game it is borrowed from. */
+const SPEED_RAMP = { gain: 0.55, overSeconds: 22 };
 
 /** Dots wipe in left to right, then the world starts moving. */
 const REVEAL_MS = 900;
@@ -72,21 +81,6 @@ const hash = (n: number) => {
   const s = Math.sin(n * 127.1) * 43758.5453;
   return s - Math.floor(s);
 };
-
-/** Smoothed value noise — one octave. */
-function noise(x: number, seed: number) {
-  const i = Math.floor(x);
-  const f = x - i;
-  const a = hash(i + seed * 1013);
-  const b = hash(i + 1 + seed * 1013);
-  const u = f * f * (3 - 2 * f);
-  return a * (1 - u) + b * u;
-}
-
-const fbm = (x: number, seed: number) =>
-  noise(x * 0.5, seed) * 0.6 +
-  noise(x * 1.7, seed + 7) * 0.3 +
-  noise(x * 4.3, seed + 13) * 0.1;
 
 /** "#9edd01" -> "158,221,1" */
 function rgbOf(hex: string) {
@@ -110,8 +104,9 @@ export function PixelScene({
   active = true,
   /** Freezes the world without hiding it — used once the run resolves. */
   running = true,
-  /** Foliage picks up the active mode's colour, so the landscape shifts with it. */
+  /** Cacti pick up the active mode's colour, so the strip shifts with it. */
   accent = "#9edd01",
+  theme = "night",
   className = "",
 }: {
   width: number;
@@ -119,13 +114,14 @@ export function PixelScene({
   active?: boolean;
   running?: boolean;
   accent?: string;
+  theme?: ThemeName;
   className?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const sizedFor = useRef("");
   const startedAt = useRef<number | null>(null);
-  const off = useRef({ stars: 0, far: 0, mid: 0, ground: 0, gallop: 0 });
+  const off = useRef({ stars: 0, clouds: 0, ground: 0, gallop: 0 });
   // Reused so the rig does not allocate 18 objects every frame.
   const rigRef = useRef<Capsule[]>([]);
   const reduced = useReducedMotion();
@@ -172,54 +168,47 @@ export function PixelScene({
 
     const dt = Math.min(Math.max(delta, 0), 50) / 1000;
     const o = off.current;
-    o.stars += SPEED.stars * spin * dt;
-    o.far += SPEED.far * spin * dt;
-    o.mid += SPEED.mid * spin * dt;
-    o.ground += SPEED.ground * spin * dt;
-    o.gallop += STRIDE_HZ * spin * dt;
+    // Everything shares one speed factor, so the ramp never desynchronises
+    // the ground from the stride and the horse never looks like it is
+    // skating.
+    const ramp =
+      1 +
+      SPEED_RAMP.gain *
+        Math.min(
+          1,
+          Math.max(0, (since - REVEAL_MS) / (SPEED_RAMP.overSeconds * 1000)),
+        );
+    const rate = spin * ramp * dt;
+    o.stars += SPEED.stars * rate;
+    o.clouds += SPEED.clouds * rate;
+    o.ground += SPEED.ground * rate;
+    o.gallop += STRIDE_HZ * ramp * spin * dt;
 
     // ---- geometry ---------------------------------------------------------
     const cols = Math.ceil(width / PITCH) + 2;
     const rows = Math.floor(height / PITCH);
-    const groundTop = rows - 3;
-    // Ceiling for every moving thing: ridges, props, the horse and the moon.
-    const ceilRow = Math.ceil(rows * SKY_BAND);
-    const band = groundTop - ceilRow;
-    const skyRows = Math.max(ceilRow - 1, 2);
     const half = PITCH / 2;
 
+    // The ground sits near the bottom; everything happens on the line.
+    const groundRow = rows - 2;
+    // Nothing may rise above this, jump apex included.
+    const ceilRow = Math.ceil(rows * LABEL_BAND);
+    // Scale the rig so a jumping horse still tops out at the ceiling.
+    const S = Math.max(
+      0.3,
+      Math.min(HORSE_SCALE_MAX, (groundRow - JUMP_ROWS - ceilRow) / RIG_TALL),
+    );
+    const horseCol = Math.round(cols * 0.3);
+    const skyTop = ceilRow;
+    const skyRows = Math.max(
+      groundRow - ceilRow - Math.round(RIG_TALL * S) + 1,
+      1,
+    );
+
+    const COLORS = PALETTES[theme];
     const foliage = rgbOf(accent);
-    const palette = {
-      bush: mix(foliage, 0.92),
-      bushDark: mix(foliage, 0.55),
-      tuft: mix(foliage, 0.78),
-    };
-
-    // Amplitudes fill the band below the ceiling, whatever the card height is,
-    // and are clamped so a tall peak can never reach the label.
-    const farTop = (w: number) =>
-      Math.max(
-        ceilRow,
-        groundTop - 2 - Math.round(Math.pow(fbm(w * 0.1, 1), 2.1) * band),
-      );
-    const midTop = (w: number) =>
-      Math.max(
-        ceilRow + 1,
-        groundTop -
-          1 -
-          Math.round(Math.pow(fbm(w * 0.17, 2), 2.1) * (band - 2)),
-      );
-
-    const propAt = (bucket: number) => {
-      const r = hash(bucket * 19.7);
-      return r > 0.84
-        ? ({ kind: "pine", w: 5, h: 5 } as const)
-        : ({
-            kind: "bush",
-            w: 3 + Math.floor(hash(bucket * 31.1) * 3),
-            h: 2 + Math.floor(hash(bucket * 7.3) * 2),
-          } as const);
-    };
+    const cactusLit = mix(foliage, 0.95);
+    const cactusDark = mix(foliage, 0.5);
 
     // ---- collect ----------------------------------------------------------
     ctx.clearRect(0, 0, width, height);
@@ -249,54 +238,40 @@ export function PixelScene({
       ]);
     };
 
-    // --- sky ---------------------------------------------------------------
+    /** Stamp a string-art sprite with its bottom-left at (col, row). */
+    const stamp = (
+      art: string[],
+      col: number,
+      bottomRow: number,
+      frac: number,
+      lit: string,
+      dark: string,
+    ) => {
+      for (let r = 0; r < art.length; r++) {
+        const row = bottomRow - (art.length - 1 - r);
+        for (let c = 0; c < art[r].length; c++) {
+          if (art[r][c] !== "#") continue;
+          put(r === 0 ? lit : dark, col + c, row, 1, frac);
+        }
+      }
+    };
+
+    // --- sky: stars and the moon, well clear of the ground -----------------
     const starSpan = cols * 3;
-    for (let i = 0; i < 34; i++) {
+    for (let i = 0; i < 16; i++) {
       const x = hash(i * 3.3) * starSpan;
       const col = (((x - o.stars) % starSpan) + starSpan) % starSpan;
       if (col > cols) continue;
       const twinkle =
-        0.65 + 0.35 * Math.sin(time / 620 + hash(i * 2.1 + 5) * 6.28);
-      const base = 0.35 + hash(i * 5.9 + 3) * 0.5;
+        0.6 + 0.4 * Math.sin(time / 620 + hash(i * 2.1 + 5) * 6.28);
       put(
         COLORS.star,
         Math.floor(col),
-        Math.floor(hash(i * 7.7 + 11) * skyRows),
-        base * twinkle,
+        1 + Math.floor(hash(i * 7.7 + 11) * Math.max(ceilRow - 2, 1)),
+        (0.3 + hash(i * 5.9 + 3) * 0.4) * twinkle * COLORS.starAlpha,
         col % 1,
       );
     }
-
-    // --- ridges ------------------------------------------------------------
-    const ridge = (
-      topAt: (w: number) => number,
-      offset: number,
-      color: string,
-      crest: number,
-      fill: number,
-      caps: boolean,
-    ) => {
-      const base = Math.floor(offset);
-      const frac = offset - base;
-      for (let c = -1; c <= cols; c++) {
-        const w = c + base;
-        const top = topAt(w);
-        const prev = topAt(w - 1);
-        const next = topAt(w + 1);
-        // Crest, plus the vertical run connecting this column to the previous
-        // one — that is what keeps the skyline unbroken on a slope.
-        for (let r = Math.min(top, prev); r <= top; r++)
-          put(color, c, r, r === top ? crest : crest * 0.72, frac);
-        // Body of the hill: a third-density dither, so it has mass without
-        // becoming a block.
-        for (let r = top + 1; r < groundTop; r++)
-          if ((w * 2 + r) % 3 === 0) put(color, c, r, fill, frac);
-        if (caps && top <= prev && top < next) put(COLORS.cap, c, top, 1, frac);
-      }
-    };
-
-    ridge(farTop, o.far, COLORS.far, 0.42, 0.18, false);
-    ridge(midTop, o.mid, COLORS.mid, 0.95, 0.32, true);
 
     const MOON = ["..#..", ".###.", "#####", ".###.", "..#.."];
     MOON.forEach((line, r) =>
@@ -305,96 +280,94 @@ export function PixelScene({
       }),
     );
 
-    // Props stand on the mid ridge.
+    // --- clouds: the slow layer --------------------------------------------
     {
-      const base = Math.floor(o.mid);
-      const frac = o.mid - base;
-      for (let c = -1; c <= cols; c++) {
-        const w = c + base;
-        if (w % 6 !== 0) continue;
-        const bucket = Math.floor(w / 6);
-        if (hash(bucket * 11.3) <= 0.52) continue;
-        const p = propAt(bucket);
-        const top = Math.max(midTop(w), ceilRow + p.h);
-        if (p.kind === "pine") {
-          for (let r = 0; r < p.h; r++) {
-            const halfW = Math.floor((r * (p.w - 1)) / (2 * (p.h - 1)));
-            for (let d = -halfW; d <= halfW; d++)
-              put(
-                r < 2 ? palette.bush : palette.bushDark,
-                c + d,
-                top - p.h + r,
-                1,
-                frac,
-              );
-          }
-        } else {
-          for (let r = 0; r < p.h; r++)
-            for (let d = 0; d < p.w; d++) {
-              if (r === 0 && (d === 0 || d === p.w - 1)) continue;
-              put(
-                r === 0 ? palette.bush : palette.bushDark,
-                c + d,
-                top - p.h + r,
-                1,
-                frac,
-              );
-            }
-        }
+      const base = Math.floor(o.clouds);
+      const frac = o.clouds - base;
+      const first = Math.floor(base / CLOUD_SPACING) - 1;
+      for (
+        let slot = first;
+        slot <= first + Math.ceil(cols / CLOUD_SPACING) + 2;
+        slot++
+      ) {
+        const cloud = cloudInSlot(slot, skyTop, skyRows);
+        if (!cloud) continue;
+        const col = cloud.col - base;
+        if (col < -12 || col > cols + 2) continue;
+        cloud.art.forEach((line, r) =>
+          [...line].forEach((ch, i) => {
+            if (ch === "#")
+              put(COLORS.cloud, col + i, cloud.row + r, 0.4, frac);
+          }),
+        );
       }
     }
 
-    // --- ground band -------------------------------------------------------
-    // A full lattice rather than a dither: every cell is lit, and depth alone
-    // carries the falloff. That is what makes it read as a panel of dots the
-    // scene is printed on.
+    // --- the ground line ---------------------------------------------------
+    // One continuous row of dots with a scatter of grit under it — the whole
+    // landscape, exactly as flat as the game it is borrowed from.
     {
       const base = Math.floor(o.ground);
       const frac = o.ground - base;
       for (let c = -1; c <= cols; c++) {
         const w = c + base;
-        for (let r = groundTop; r < rows; r++) {
-          const depth = (r - groundTop) / Math.max(rows - groundTop - 1, 1);
-          if (r === groundTop) {
-            const tuft = hash(w * 3.9) > 0.84;
-            put(
-              tuft ? palette.tuft : COLORS.groundEdge,
-              c,
-              r,
-              tuft ? 1 : 0.85,
-              frac,
-            );
-            continue;
-          }
-          const speck = hash(w * 7.1 + r * 13.7);
-          put(
-            speck > 0.93 ? COLORS.groundEdge : COLORS.ground,
-            c,
-            r,
-            0.42 + depth * 0.45,
-            frac,
-          );
+        put(COLORS.ground, c, groundRow, 0.9, frac);
+        const grit = hash(w * 7.1);
+        if (grit > 0.78) put(COLORS.pebble, c, groundRow + 1, 0.55, frac);
+        // Occasional longer scuff, like the dashes in the game's ground.
+        if (grit > 0.955) {
+          put(COLORS.pebble, c + 1, groundRow + 1, 0.55, frac);
+          put(COLORS.pebble, c + 2, groundRow + 1, 0.55, frac);
         }
+      }
+
+      // --- cacti -----------------------------------------------------------
+      const firstSlot = Math.floor(base / CACTUS_SPACING) - 1;
+      const lastSlot = firstSlot + Math.ceil(cols / CACTUS_SPACING) + 2;
+      for (let slot = firstSlot; slot <= lastSlot; slot++) {
+        const cactus = cactusInSlot(slot);
+        if (!cactus) continue;
+        const col = cactus.col - base;
+        if (col < -8 || col > cols + 2) continue;
+        stamp(cactus.art, col, groundRow - 1, frac, cactusLit, cactusDark);
       }
     }
 
     // --- horse -------------------------------------------------------------
-    // Sampled as a distance field: inside the silhouette dots are full size,
-    // and across the last cell or so at the edge they taper to nothing. That
-    // taper is the halftone, and it is also why the gallop reads as fluid —
-    // the edge moves continuously rather than a dot blinking on or off.
-    const segs = horseSegments(o.gallop % 1, rigRef.current);
-    const S = Math.min(HORSE_SCALE_MAX, (band + 0.6) / RIG_TALL);
-    const originRow = groundTop - Math.round(RIG_DROP * S);
-    const originCol = Math.round(cols * 0.27);
+    // The jump is read, not simulated: the arc is a function of how far the
+    // next cactus is from the horse, so it is always already in the right
+    // place no matter what the frame rate did.
+    const horseWorld = o.ground + horseCol;
+    let lift = 0;
+    {
+      const nearSlot = Math.floor(horseWorld / CACTUS_SPACING);
+      for (let slot = nearSlot - 1; slot <= nearSlot + 2; slot++) {
+        const cactus = cactusInSlot(slot);
+        if (!cactus) continue;
+        const d = cactus.col - horseWorld;
+        if (d > JUMP_BEFORE || d < -JUMP_AFTER) continue;
+        const t01 = (JUMP_BEFORE - d) / (JUMP_BEFORE + JUMP_AFTER);
+        const h = JUMP_ROWS * Math.sin(Math.PI * t01);
+        if (h > lift) lift = h;
+      }
+    }
+
+    const airborne = lift > 0.25;
+    const pose = airborne ? AIRBORNE_POSE : o.gallop % 1;
+    const segs = horseSegments(pose, rigRef.current);
+    const originRow = groundRow - RIG_DROP * S - lift;
     const y0 = Math.floor(RIG.top * S);
     const y1 = Math.ceil(RIG.bottom * S);
     const x0 = Math.floor(RIG.left * S);
     const x1 = Math.ceil(RIG.right * S);
-    for (let ly = y0; ly <= y1; ly++) {
+    // The lift is fractional, so the sample window shifts with it rather than
+    // the horse hopping a whole cell at a time.
+    const rowBase = Math.floor(originRow);
+    const rowFrac = originRow - rowBase;
+    for (let ly = y0 - 1; ly <= y1 + 1; ly++) {
       for (let lx = x0; lx <= x1; lx++) {
         const rx = lx / S;
-        const ry = ly / S;
+        const ry = (ly + rowFrac) / S;
         let d = Infinity;
         for (let i = 0; i < segs.length; i++) {
           const v = sdCapsule(rx, ry, segs[i]);
@@ -402,11 +375,14 @@ export function PixelScene({
         }
         d *= S; // rig units -> grid cells
         if (d >= HALFTONE_FALLOFF) continue;
-        let k = (HALFTONE_FALLOFF - d) / (2 * HALFTONE_FALLOFF);
+        // Full size anywhere inside the silhouette, tapering only across the
+        // falloff band outside it. Centring the ramp on the surface instead
+        // halves every dot on a thin limb, and the legs disappear.
+        let k = (HALFTONE_FALLOFF - d) / HALFTONE_FALLOFF;
         if (k > 1) k = 1;
         k = k * k * (3 - 2 * k); // smoothstep
         if (k <= 0.04) continue;
-        put(COLORS.horse, originCol + lx, originRow + ly, 1, 0, k);
+        put(COLORS.horse, horseCol + lx, rowBase + ly, 1, 0, k);
       }
     }
 
@@ -427,8 +403,12 @@ export function PixelScene({
           key = k;
           open = true;
         }
-        ctx.moveTo(x + qr, y);
-        ctx.arc(x, y, qr, 0, Math.PI * 2);
+        if (COLORS.shape === "square") {
+          ctx.roundRect(x - qr, y - qr, qr * 2, qr * 2, qr * 0.42);
+        } else {
+          ctx.moveTo(x + qr, y);
+          ctx.arc(x, y, qr, 0, Math.PI * 2);
+        }
       }
       if (open) ctx.fill();
     }

@@ -4,9 +4,12 @@ export default function PixelPage() {
   return (
     <Stage
       variant="scene"
-      caption="thinking · landscape"
+      caption="thinking · night runner"
       hint="Tap the card to collapse it back to the pill"
-      other={{ href: "/", label: "← Steps version" }}
+      links={[
+        { href: "/", label: "← Steps" },
+        { href: "/day", label: "Daylight →" },
+      ]}
     />
   );
 }

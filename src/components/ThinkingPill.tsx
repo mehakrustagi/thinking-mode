@@ -13,6 +13,7 @@ const SETTLED: Mode = {
   label: "Booked",
   dot: "#01ddd6",
   hue: 178,
+  muted: "#6d7fa6",
   steps: [],
 };
 

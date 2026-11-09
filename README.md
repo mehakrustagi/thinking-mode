@@ -12,7 +12,8 @@ Two variants of the same run:
 | Route | What the pill opens into |
 | --- | --- |
 | `/` | The agent's steps — a done / active / pending ladder. |
-| `/pixel` | The dot-matrix landscape it runs through while it works. |
+| `/pixel` | A dot-matrix runner, at night. |
+| `/day` | The same runner in the woven daylight palette. |
 
 ## What runs
 
@@ -34,45 +35,54 @@ their dot's hue.
 
 Everything honours `prefers-reduced-motion` via `MotionConfig reducedMotion="user"`.
 
-## The landscape (`/pixel`)
+## The runner (`/pixel`, `/day`)
 
-The same black capsule, opened out into a window. One `layout` spring morphs
-the pill into a 313×88 card and the contents cross-fade inside it; the scene
-stays mounted through the morph so the horse never restarts its gallop.
+The same black capsule, opened out into a window on a side-scrolling strip —
+built to feel like the Chrome dino game: one flat ground line of dots with grit
+scattered under it, cacti coming at you, clouds drifting over, and a runner
+that **jumps**. The run accelerates as it goes.
 
 **Sequence.** The pill holds in its exact collapsed form for 2s. The box grows.
 A beat later the dots sweep in left to right over 900ms and the world spins up
 to speed. The four modes run. Then the card shrinks back to the pill, which
 reads Thinking again, and the whole thing goes round.
 
-**The sky is half the card, and nothing is allowed into it.** `SKY_BAND` sets
-that share; every ridge, prop and the horse itself is clamped below it, and the
-horse is *scaled* from whatever band is left rather than being a fixed size. So
-the label always has air beneath it, and changing the card height re-fits the
-landscape instead of cropping it. The moon stays up in the corner, far from the
-centred label, and draws after the ridges so they never occlude it.
+### The morph follows the Dynamic Island
 
-`PixelScene` is a canvas drawing one grid of dots on a 4px pitch — sky, ridges,
-ground and horse all snap to the same lattice, which is what makes it read as a
-single display rather than sprites on a drawing. Terrain is sampled by absolute
-world column from a seeded value-noise, squared so the profile stays low and
-spikes into peaks, so every layer scrolls forever without holding state; only
-the offsets advance. Four parallax rates, in grid columns per second: stars 0.4,
-far ridge 1.6, mid ridge 4.5, ground 11.
+Apple specifies these springs as a response and a damping fraction; framer's
+`duration`/`bounce` pair is the same thing (`bounce = 1 - dampingFraction`), so
+`MORPH` is `.spring(response: 0.52, dampingFraction: 0.74)` — enough overshoot
+to read as one shape stretching rather than two shapes swapping. The island's
+other rules, all applied: the black shape itself never changes opacity, the
+corner radius rides the same spring as the size, outgoing content leaves faster
+than the shape moves (130ms), incoming content arrives late and scales up into
+place, and nothing inside translates — it scales from the centre.
 
 ### The horse
 
 Not a sprite sheet. `horseRig.ts` is an articulated rig — barrel, neck, head,
 tail and four jointed legs as capsules — whose joints are continuous functions
 of the gallop phase. Each leg's hip swing is a sine and its knee flex a raised
-cosine a quarter-cycle behind; the four legs are phase-offset into a transverse
-gallop, and the body takes one bounce per stride.
+cosine a quarter-cycle behind; the four are phase-offset into a transverse
+gallop, and the body takes one bounce per stride. `RIG_DROP` and `RIG_TALL` are
+measured over a full stride rather than eyeballed, so the hooves graze the
+ground line at full extension at any scale.
 
 The scene samples that rig as a signed distance field. A dot's **size** is how
-deep inside the silhouette its cell sits, so dots run full size through the body
-and taper to nothing across the last cell at the edge. That is the halftone —
-and it is also why the gait reads as fluid rather than as frames: the edge moves
-continuously, instead of a dot blinking on or off.
+deep inside the silhouette its cell sits — full size anywhere inside, tapering
+only across the falloff band outside. (Centring that ramp *on* the surface
+instead halves every dot on a thin limb, and the legs disappear.) That is the
+halftone, and it is also why the gait reads as fluid rather than as frames: the
+edge moves continuously instead of a dot blinking on or off.
+
+### The jump is read, not simulated
+
+Cacti are placed by hashing an absolute world slot, not spawned and stored. So
+the strip is infinite, identical on every frame, and the horse can look *ahead*:
+the lift is a sine arc over the distance to the next cactus. There is no
+physics step and no state, which means the horse is always already in the right
+place no matter what the frame rate did. Its legs hold near full extension
+while airborne, the way the dino's do.
 
 ### Fluid and crisp are in tension here, and both are solved explicitly
 
@@ -86,13 +96,20 @@ continuously, instead of a dot blinking on or off.
   zoom changes dpr, and a canvas sized for the old one is what turns the whole
   scene to mush.
 - The loop runs on framer's `useAnimationFrame`, not its own `requestAnimation-
-  Frame`, so it is scheduled alongside the layout springs driving the card
-  rather than competing with them for the same frame.
-- Nothing but the horse and the moon is allowed to be white. The skyline caps
-  were, and the horse vanished into them.
+  Frame`, so it is scheduled alongside the layout springs driving the card.
+- `LABEL_BAND` reserves the top of the card for the text and **nothing** may
+  reach into it — not a cloud, not a cactus, not the horse at the top of its
+  jump. The rig is scaled from whatever band is left, so changing the card
+  height re-fits the scene instead of cropping it.
 
-Foliage takes the active mode's colour, so the landscape shifts from lime to
-gold to teal as the run proceeds.
+### Palettes
+
+`palette.ts` holds both. `night` is the original — white runner on black, round
+dots, the mode's own colour on the cacti. `day` is drawn from the pixel artwork:
+muted sage, slate, terracotta and peach on paper, with **rounded-square** dots
+rather than round ones, which is what gives that artwork its woven look. Each
+mode carries a `muted` twin for it, and the faint layers get more weight because
+a 40% cloud that reads on black vanishes on paper.
 
 ## Colours
 

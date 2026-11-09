@@ -5,18 +5,21 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { ChatScreen } from "./ChatScreen";
 import { EASE_OUT } from "@/lib/motion";
+import type { ThemeName } from "@/lib/palette";
 
 /** The phone, its caption and the replay control — shared by both variants. */
 export function Stage({
   variant,
+  theme = "night",
   caption,
   hint,
-  other,
+  links,
 }: {
   variant: "steps" | "scene";
+  theme?: ThemeName;
   caption: string;
   hint: string;
-  other: { href: string; label: string };
+  links: { href: string; label: string }[];
 }) {
   const [runId, setRunId] = useState(0);
   const again = useCallback(() => setRunId((v) => v + 1), []);
@@ -37,6 +40,7 @@ export function Stage({
           <ChatScreen
             key={runId}
             variant={variant}
+            theme={theme}
             onComplete={variant === "scene" ? again : undefined}
           />
         </motion.div>
@@ -50,12 +54,15 @@ export function Stage({
             Replay
           </button>
           <span>{hint}</span>
-          <Link
-            href={other.href}
-            className="rounded-full border border-white/15 px-[14px] py-[7px] text-white/70 transition-colors hover:border-white/35 hover:text-white"
-          >
-            {other.label}
-          </Link>
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="rounded-full border border-white/15 px-[14px] py-[7px] text-white/70 transition-colors hover:border-white/35 hover:text-white"
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
       </main>
     </MotionConfig>

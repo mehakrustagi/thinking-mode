@@ -18,6 +18,8 @@ export type Mode = {
   hue: number;
   /** Explicit label gradient, where the design specifies one. */
   grad?: [string, string];
+  /** The same mode in the daylight palette — muted enough to sit on paper. */
+  muted: string;
   /** What the agent is actually doing, streamed one line at a time. */
   steps: string[];
 };
@@ -25,6 +27,7 @@ export type Mode = {
 export const MODES: Mode[] = [
   {
     id: "thinking",
+    muted: "#6f8f62",
     label: "Thinking",
     dot: "#a1e000",
     hue: 77,
@@ -38,6 +41,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "checking",
+    muted: "#b0893a",
     label: "Checking",
     dot: "#c7aa00",
     hue: 51,
@@ -49,6 +53,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "analyzing",
+    muted: "#c8663a",
     label: "Analyzing",
     dot: "#ddaa01",
     hue: 46,
@@ -60,6 +65,7 @@ export const MODES: Mode[] = [
   },
   {
     id: "booking",
+    muted: "#6d7fa6",
     label: "Booking",
     dot: "#01ddd6",
     hue: 178,
@@ -75,12 +81,28 @@ export const MODES: Mode[] = [
 export const labelBase = (hue: number) => `hsl(${hue} 100% 60% / 0.42)`;
 export const labelPeak = (hue: number) => `hsl(${hue} 100% 66%)`;
 
+/** Multiply a hex colour, for deriving a darker stop from a mode's accent. */
+export function shade(hex: string, k: number) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) =>
+    Math.round(v * k),
+  );
+  return `rgb(${c.join(",")})`;
+}
+
 /**
  * The label's paint. A mode with an explicit gradient keeps its two stops and
  * gets the sweep highlight threaded between them; the rest derive both ends
  * from their hue.
  */
-export function labelImage(mode: Mode) {
+export function labelImage(mode: Mode, theme: "night" | "day" = "night") {
+  if (theme === "day") {
+    // On paper the label has to be dark; the sweep lifts it rather than
+    // brightening past it.
+    return `linear-gradient(100deg, ${shade(mode.muted, 0.6)} 38%, ${
+      mode.muted
+    } 50%, ${shade(mode.muted, 0.6)} 62%)`;
+  }
   if (mode.grad) {
     const [from, to] = mode.grad;
     return `linear-gradient(100deg, ${from} 4%, ${to} 40%, #ffffff 50%, ${to} 60%, ${from} 96%)`;
