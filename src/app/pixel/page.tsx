@@ -10,6 +10,7 @@ export default function PixelPage() {
         { href: "/", label: "← Steps" },
         { href: "/day", label: "Daylight →" },
         { href: "/scenes", label: "All scenes →" },
+        { href: "/loaders", label: "Loaders →" },
       ]}
     />
   );

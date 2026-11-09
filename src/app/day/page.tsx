@@ -11,6 +11,7 @@ export default function DayPage() {
         { href: "/", label: "← Steps" },
         { href: "/pixel", label: "← Night runner" },
         { href: "/scenes", label: "All scenes →" },
+        { href: "/loaders", label: "Loaders →" },
       ]}
     />
   );

@@ -15,6 +15,7 @@ Two variants of the same run:
 | `/pixel` | The dot-matrix scenes, at night. |
 | `/day` | The same scenes in the woven daylight palette. |
 | `/scenes` | All four scenes side by side, either palette — for judging them on their own. |
+| `/loaders` | A shelf of loading animations, same card, either palette. Adding one is an entry in `lib/loaders.tsx`. |
 
 ## What runs
 

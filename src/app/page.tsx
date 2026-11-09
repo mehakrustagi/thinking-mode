@@ -10,6 +10,7 @@ export default function Page() {
         { href: "/pixel", label: "Night runner →" },
         { href: "/day", label: "Daylight →" },
         { href: "/scenes", label: "All scenes →" },
+        { href: "/loaders", label: "Loaders →" },
       ]}
     />
   );

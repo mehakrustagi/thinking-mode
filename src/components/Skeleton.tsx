@@ -8,7 +8,19 @@ import { motion } from "framer-motion";
  * through is the "still generating" tell, and it uses the same highlight
  * grammar as the pill label.
  */
-export function Skeleton({ widths = [130, 80] }: { widths?: number[] }) {
+const TONES = {
+  light: { base: "#e4e4e4", peak: "#f6f6f6" },
+  dark: { base: "#2a2a2a", peak: "#4a4a4a" },
+};
+
+export function Skeleton({
+  widths = [130, 80],
+  /** The bars are a hole in the surface, so they follow it. */
+  tone = "light",
+}: {
+  widths?: number[];
+  tone?: keyof typeof TONES;
+}) {
   return (
     <div className="flex flex-col gap-[12px]">
       {widths.map((w, i) => (
@@ -17,8 +29,7 @@ export function Skeleton({ widths = [130, 80] }: { widths?: number[] }) {
           className="h-[8px] rounded-[var(--radius-compact)]"
           style={{
             width: w,
-            backgroundImage:
-              "linear-gradient(100deg, #e4e4e4 34%, #f6f6f6 50%, #e4e4e4 66%)",
+            backgroundImage: `linear-gradient(100deg, ${TONES[tone].base} 34%, ${TONES[tone].peak} 50%, ${TONES[tone].base} 66%)`,
             backgroundSize: "260% 100%",
           }}
           initial={{ opacity: 0, backgroundPosition: "180% 0%" }}
