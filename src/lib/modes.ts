@@ -41,8 +41,8 @@ export const MODES: Mode[] = [
     label: "Thinking",
     dot: "#a1e000",
     hue: 77,
-    // The Thinking gradient from the file: #002411 -> #A1E000.
-    grad: ["#002411", "#a1e000"],
+    // The Thinking gradient from the file: #001A0C -> #A1E000.
+    grad: ["#001a0c", "#a1e000"],
     steps: [
       "Reading the request",
       "Splitting it into 3 sub-tasks",
@@ -109,16 +109,23 @@ export function shade(hex: string, k: number) {
  * from their hue.
  */
 export function labelImage(mode: Mode, theme: "night" | "day" = "night") {
+  // A mode with an explicit gradient keeps it in both palettes — it is the
+  // brand mark, not a dark-mode treatment.
+  if (mode.grad) {
+    const [from, to] = mode.grad;
+    return theme === "day"
+      ? // On paper the word sits dark and the lime travels through it. The
+        // night version threads white at the peak, which on a near-white card
+        // would erase whichever letters the sweep was over.
+        `linear-gradient(100deg, ${from} 12%, ${to} 50%, ${from} 88%)`
+      : `linear-gradient(100deg, ${from} 4%, ${to} 40%, #ffffff 50%, ${to} 60%, ${from} 96%)`;
+  }
   if (theme === "day") {
-    // On paper the label has to be dark; the sweep lifts it rather than
-    // brightening past it.
+    // The rest have no gradient of their own; on paper the label has to be
+    // dark, and the sweep lifts it rather than brightening past it.
     return `linear-gradient(100deg, ${shade(mode.muted, 0.6)} 38%, ${
       mode.muted
     } 50%, ${shade(mode.muted, 0.6)} 62%)`;
-  }
-  if (mode.grad) {
-    const [from, to] = mode.grad;
-    return `linear-gradient(100deg, ${from} 4%, ${to} 40%, #ffffff 50%, ${to} 60%, ${from} 96%)`;
   }
   return `linear-gradient(100deg, ${labelBase(mode.hue)} 38%, ${labelPeak(
     mode.hue,
