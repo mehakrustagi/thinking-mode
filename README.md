@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Thinking Modes
 
-## Getting Started
-
-First, run the development server:
+The agent status pill from [Motion → thinking mode animation](https://www.figma.com/design/TgmXGFeUbNqF9MRvnNWGE2/Motion?node-id=60-5910),
+built as a running screen rather than four static frames.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What runs
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The Figma page has one frame per mode — **Thinking**, **Checking**, **Analyzing**,
+**Booking**. Here they're one pill walking the sequence, then settling.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Surface | Motion |
+| --- | --- |
+| Pill | `layout` spring morphs the width as the label changes length. Label swaps on a blur + y-slide (out up, in up); `popLayout` so the two never fight for the same slot. |
+| Dot matrix | Figma's anti-diagonal opacity ramp (1.0 → 0.1) is each dot's **floor**; a 1.6s wave runs down the same diagonal on top of it, so the motion only ever adds light. `backgroundColor` is animated, not set, so a mode change cross-fades the whole matrix. |
+| Label | Highlight sweep — the cue that this is still changing. It parks at the loop's start position on settle, never mid-sweep (a frozen bright band through settled text reads as a bug). |
+| Panel | Tap the pill: the four modes as a done / active / pending ladder, with the live mode's steps streaming in a line at a time and a drawn-on tick for each one finished. |
+| Answer | Placeholder bars shimmer until the run resolves, then blur out as the real answer reveals word by word. |
+| Inline chips | The `#002411 → #a1e000` gradient from the design, with a one-shot sweep on arrival — marks a live lookup rather than emphasis. |
 
-## Learn More
+Everything honours `prefers-reduced-motion` via `MotionConfig reducedMotion="user"`.
 
-To learn more about Next.js, take a look at the following resources:
+## Colours
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Sampled from the Figma renders. Each mode's label is `hsl(<dot hue> 100% 60%)` —
+the relationship the Checking frame defines (`#c7aa00` dots / `#ffda34` text),
+extended to the other three.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Mode | Dot | Hue |
+| --- | --- | --- |
+| Thinking | `#9edd01` | 77 |
+| Checking | `#c7aa00` | 51 |
+| Analyzing | `#ddaa01` | 46 |
+| Booking | `#01ddd6` | 178 |
 
-## Deploy on Vercel
+## Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`src/`
+- `lib/modes.ts` — the four modes, their colours and their steps. Timing lives here.
+- `lib/motion.ts` — shared easing and springs.
+- `components/ThinkingPill.tsx` — the pill and its expanded panel.
+- `components/DotMatrix.tsx`, `ShimmerText.tsx` — ported from the Motion Library
+  (`snapmap-dot-shimmer`, `snapmap-shimmer-text`).
+- `components/ChatScreen.tsx` — the run: one timeout chain, keyed so Replay remounts.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Icons in `public/icons/` are exported straight from the file. The one exception
+is the back button: Figma's ellipse carries inner shadows authored for a much
+larger node, and at 44px they crush it to a dark disc — it's rebuilt in CSS from
+the same wash the input chips use.

@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* ---- surfaces (Figma: neutrals + grey ramp) ---- */
+  --screen: #ffffff;
+  --card: #ffffff;
+  --hairline: #f2f2f2;
+  --ink-900: rgba(0, 0, 0, 0.9);
+  --ink-1000: #000000;
+  --text-secondary: #879494;
+  --skeleton-from: #eeeded;
+  --skeleton-to: #fafafa;
+
+  /* ---- radii / shadow ---- */
+  --radius-pill: 60px;
+  --radius-card: 24px;
+  --radius-input: 32px;
+  --radius-compact: 100px;
+  --shadow-card: 0 8px 18px 0 rgba(0, 0, 0, 0.02);
+
+  /* ---- inline agent-chip gradient (Figma: #002411 -> #a1e000) ---- */
+  --chip-from: #002411;
+  --chip-to: #a1e000;
+}
+
+html,
+body {
+  background: #0d0d0f;
+  color: var(--ink-900);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Text painted by its own background — used by every gradient / shimmer label. */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* The phone's own scroller: present, but never drawn. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Caret in the composer. Pure CSS so it keeps ticking while React is idle. */
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
   }
 }
+.caret {
+  animation: caret-blink 1.1s steps(1, end) infinite;
+}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
 }
