@@ -142,7 +142,7 @@ export function ThinkingCard({
             accent={day ? shown.muted : shown.dot}
             theme={theme}
           />
-          <span className="absolute inset-x-0 top-[10px] flex justify-center">
+          <span className="absolute inset-x-0 top-[8px] flex justify-center">
             {label}
           </span>
         </motion.span>

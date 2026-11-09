@@ -97,10 +97,11 @@ while airborne, the way the dino's do.
   scene to mush.
 - The loop runs on framer's `useAnimationFrame`, not its own `requestAnimation-
   Frame`, so it is scheduled alongside the layout springs driving the card.
-- `LABEL_BAND` reserves the top of the card for the text and **nothing** may
-  reach into it — not a cloud, not a cactus, not the horse at the top of its
-  jump. The rig is scaled from whatever band is left, so changing the card
-  height re-fits the scene instead of cropping it.
+- `LABEL_BAND` reserves the top 46% of the card for the text and **nothing**
+  may reach into it — not a cloud, not a cactus, not the horse at the top of
+  its jump. The rig is scaled from whatever band is left, so changing the card
+  height re-fits the scene instead of cropping it, and shortening the cacti
+  (which sets the jump height) is what buys the runner its size back.
 
 ### Palettes
 

@@ -49,12 +49,12 @@ const STRIDE_HZ = 2.6;
 /** Cells over which a dot fades out at the silhouette's edge. */
 const HALFTONE_FALLOFF = 1.0;
 /** The rig is authored at full size; it is scaled to fit the scene band. */
-const HORSE_SCALE_MAX = 0.78;
+const HORSE_SCALE_MAX = 0.4;
 /**
  * Share of the card the label keeps for itself. Nothing reaches into it —
  * not the horse at the top of its jump, not a cactus, not a cloud.
  */
-const LABEL_BAND = 0.3;
+const LABEL_BAND = 0.46;
 
 /** How high the horse rises, in rows. Sized to clear the tallest cactus. */
 const JUMP_ROWS = CACTUS_MAX_H + 0.6;
@@ -199,7 +199,7 @@ export function PixelScene({
       Math.min(HORSE_SCALE_MAX, (groundRow - JUMP_ROWS - ceilRow) / RIG_TALL),
     );
     const horseCol = Math.round(cols * 0.3);
-    const skyTop = ceilRow;
+    const skyTop = ceilRow + 1;
     const skyRows = Math.max(
       groundRow - ceilRow - Math.round(RIG_TALL * S) + 1,
       1,

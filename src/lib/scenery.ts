@@ -16,17 +16,17 @@ const hash = (n: number) => {
 export const CACTUS_SPACING = 26;
 
 /** Tallest a cactus gets, in rows — the jump height is sized off this. */
-export const CACTUS_MAX_H = 3;
+export const CACTUS_MAX_H = 2;
 
 const CACTI = [
   // one stem, one arm
-  [".#.", "###", ".#."],
-  // two stems
-  ["#.#", "###", ".#."],
+  ["#.#", "###"],
   // a low one
-  ["##", "##"],
+  [".#.", "###"],
+  // a single
+  ["#", "#"],
   // a wide clump
-  ["#.#.#", "#####", "..#.."],
+  ["#.#.#", "#####"],
 ];
 
 export type Cactus = { col: number; art: string[]; w: number; h: number };
